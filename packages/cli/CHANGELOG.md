@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Added release workflow support for npm trusted publishing with provenance.
+- Added release safety checks for CLI package contents and changelog/version alignment.
+- Bundled the latest Agent Markdown Preview VSIX in the CLI publish artifact.
+
 ## 0.1.2
 
 - Installed agent skills into each tool's documented `SKILL.md` directory.
