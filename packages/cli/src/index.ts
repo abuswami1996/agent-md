@@ -10,7 +10,7 @@ import chokidar from "chokidar";
 import { WebSocketServer } from "ws";
 import { parseAgentMarkdown } from "@agent-md/parser";
 import { defaultConfig, type AgentMarkdownConfig, type AgentMarkdownDocument, type Diagnostic } from "@agent-md/schema";
-import { componentsJson, configJson, exampleAgentMarkdown, schemaJson, skillMarkdown } from "@agent-md/skill";
+import { componentsJson, configJson, exampleAgentMarkdown, schemaJson, skillMarkdown, skillName } from "@agent-md/skill";
 import { loadConfig, resolveDocumentData, resolveSafeRealPath, artifactExtensions, dataExtensions } from "@agent-md/resolver";
 
 const program = new Command();
@@ -31,16 +31,19 @@ program.command("init")
   .option("--agent <agent>", "agent skill flavor", "generic")
   .action(async (options) => {
     const root = process.cwd();
+    const agent = normalizeAgent(String(options.agent));
     await writeIfMissing(path.join(root, "agent-md.config.json"), configJson());
     await fs.mkdir(path.join(root, ".agent-md"), { recursive: true });
     await fs.mkdir(path.join(root, "examples"), { recursive: true });
     await writeIfMissing(path.join(root, ".agent-md", "skill.md"), skillMarkdown);
+    const installedSkillPaths = await installAgentSkill(root, agent);
     await writeIfMissing(path.join(root, ".agent-md", "schema.json"), schemaJson());
     await writeIfMissing(path.join(root, ".agent-md", "components.json"), componentsJson());
     await writeIfMissing(path.join(root, "examples", "example.agent.md"), exampleAgentMarkdown);
-    if (["cursor", "vscode"].includes(String(options.agent).toLowerCase())) await mergeVsCodeRecommendation(root);
+    if (["cursor", "vscode"].includes(agent)) await mergeVsCodeRecommendation(root);
     console.log(pc.green("Agent Markdown project initialized."));
-    if (["cursor", "vscode"].includes(String(options.agent).toLowerCase())) {
+    for (const installedPath of installedSkillPaths) console.log(pc.gray(`Agent skill installed: ${path.relative(root, installedPath)}`));
+    if (["cursor", "vscode"].includes(agent)) {
       console.log(pc.gray(`Recommended extension added: ${extensionId}`));
       console.log(pc.gray("Open an .agent.md file and run: Agent Markdown: Open Preview"));
       console.log(pc.gray("Browser fallback: npx agent-md serve"));
@@ -140,6 +143,34 @@ program.parseAsync(process.argv);
 async function writeIfMissing(file: string, content: string) {
   try { await fs.writeFile(file, content, { flag: "wx" }); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+}
+
+async function installAgentSkill(root: string, agent: string) {
+  const skillPaths = skillInstallPaths(root, agent);
+  for (const skillPath of skillPaths) {
+    await fs.mkdir(path.dirname(skillPath), { recursive: true });
+    await writeIfMissing(skillPath, skillMarkdown);
+  }
+  return skillPaths;
+}
+
+function normalizeAgent(agent: string) {
+  return agent.toLowerCase().trim().replace(/[\s_]+/g, "-");
+}
+
+function skillInstallPaths(root: string, agent: string) {
+  const relativeRoots: Record<string, string[]> = {
+    cursor: [".cursor/skills"],
+    vscode: [".agents/skills"],
+    "claude-code": [".claude/skills"],
+    claude: [".claude/skills"],
+    codex: [".agents/skills"],
+    opencode: [".opencode/skills"],
+    generic: [".agents/skills"],
+    all: [".cursor/skills", ".claude/skills", ".agents/skills", ".opencode/skills"]
+  };
+  const roots = relativeRoots[agent] ?? relativeRoots.generic;
+  return roots.map((relativeRoot) => path.join(root, relativeRoot, skillName, "SKILL.md"));
 }
 
 async function mergeVsCodeRecommendation(root: string) {

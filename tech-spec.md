@@ -1739,9 +1739,14 @@ This avoids shipping an unsafe plugin model too early.
 
 15.1 Skill file
 
-Generated at:
+Generated as a tool-specific project skill:
 
-.agent-md/skill.md
+- Cursor: `.cursor/skills/agent-markdown/SKILL.md`
+- Claude Code: `.claude/skills/agent-markdown/SKILL.md`
+- Codex: `.agents/skills/agent-markdown/SKILL.md`
+- OpenCode: `.opencode/skills/agent-markdown/SKILL.md`
+
+A reference copy is also generated at `.agent-md/skill.md`.
 
 15.2 Skill contents
 
@@ -2147,10 +2152,11 @@ Phase 6: Agent skill packaging
 
 Deliverables:
 
-1. .agent-md/skill.md.
-2. Agent adapter templates.
-3. Example files.
-4. Documentation.
+1. Tool-specific `SKILL.md` installation for Cursor, Claude Code, Codex, and OpenCode.
+2. `.agent-md/skill.md` reference copy.
+3. Agent adapter templates.
+4. Example files.
+5. Documentation.
 
 Acceptance criteria:
 

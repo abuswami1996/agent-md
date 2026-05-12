@@ -17,6 +17,7 @@ describe("agent-md init", () => {
       await execFileAsync(tsx, [cli, "init", "--agent", "cursor"], { cwd: temp });
       const extensions = JSON.parse(await fs.readFile(path.join(temp, ".vscode/extensions.json"), "utf8")) as { recommendations: string[] };
       expect(extensions.recommendations).toContain("AbhinavSwaminathan.agent-md-preview");
+      await expectSkill(temp, ".cursor/skills/agent-markdown/SKILL.md");
       await fs.access(path.join(temp, ".agent-md/skill.md"));
       await fs.access(path.join(temp, "examples/example.agent.md"));
     } finally {
@@ -36,4 +37,39 @@ describe("agent-md init", () => {
       await fs.rm(temp, { recursive: true, force: true });
     }
   });
+
+  it.each([
+    ["claude-code", ".claude/skills/agent-markdown/SKILL.md"],
+    ["codex", ".agents/skills/agent-markdown/SKILL.md"],
+    ["opencode", ".opencode/skills/agent-markdown/SKILL.md"],
+    ["generic", ".agents/skills/agent-markdown/SKILL.md"]
+  ])("installs %s skill in the documented SKILL.md location", async (agent, skillPath) => {
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "agent-md-init-"));
+    try {
+      await execFileAsync(tsx, [cli, "init", "--agent", agent], { cwd: temp });
+      await expectSkill(temp, skillPath);
+    } finally {
+      await fs.rm(temp, { recursive: true, force: true });
+    }
+  });
+
+  it("can install all supported project skill locations", async () => {
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "agent-md-init-"));
+    try {
+      await execFileAsync(tsx, [cli, "init", "--agent", "all"], { cwd: temp });
+      await expectSkill(temp, ".cursor/skills/agent-markdown/SKILL.md");
+      await expectSkill(temp, ".claude/skills/agent-markdown/SKILL.md");
+      await expectSkill(temp, ".agents/skills/agent-markdown/SKILL.md");
+      await expectSkill(temp, ".opencode/skills/agent-markdown/SKILL.md");
+    } finally {
+      await fs.rm(temp, { recursive: true, force: true });
+    }
+  });
 });
+
+async function expectSkill(root: string, relativePath: string) {
+  const content = await fs.readFile(path.join(root, relativePath), "utf8");
+  expect(content).toContain("name: agent-markdown");
+  expect(content).toContain("description:");
+  expect(content).toContain("# Agent Markdown Skill");
+}

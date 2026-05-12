@@ -16,6 +16,14 @@ npx agent-md init --agent cursor
 
 This creates local configuration, an agent skill file, schema metadata, starter examples, and VSCode/Cursor extension recommendations for `AbhinavSwaminathan.agent-md-preview`.
 
+Use the `--agent` flag to install the skill in the project-local location for your tool:
+
+- `cursor`: `.cursor/skills/agent-markdown/SKILL.md`
+- `claude-code`: `.claude/skills/agent-markdown/SKILL.md`
+- `codex`: `.agents/skills/agent-markdown/SKILL.md`
+- `opencode`: `.opencode/skills/agent-markdown/SKILL.md`
+- `all`: all supported project-local skill locations
+
 Install the published editor extension:
 
 ```bash

@@ -271,7 +271,8 @@ npx agent-md vscode-extension
 Verify:
 
 - `agent-md.config.json` exists.
-- `.agent-md/skill.md` exists.
+- `.cursor/skills/agent-markdown/SKILL.md` exists for the Cursor smoke test.
+- `.agent-md/skill.md` exists as the reference copy.
 - `.vscode/extensions.json` recommends the extension ID.
 - `examples/example.agent.md` exists.
 - `npx agent-md validate` succeeds.

@@ -65,7 +65,7 @@ npm install @abuswami1996/agent-md
 npx agent-md init --agent cursor
 ```
 
-The CLI installs the project-local agent skill, schema, config, examples, and editor recommendations.
+The CLI installs the project-local agent skill, schema, config, examples, and editor recommendations. For Cursor, the skill is installed at `.cursor/skills/agent-markdown/SKILL.md`; use `--agent claude-code`, `--agent codex`, or `--agent opencode` to install into those tools' native skill directories.
 
 ## Known Limitations
 

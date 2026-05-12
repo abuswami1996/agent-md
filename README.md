@@ -63,7 +63,17 @@ Agent Markdown supports the MVP primitives below:
 
 Agent Markdown is designed to be installed into a project as both a runtime and a writing guide for agents.
 
-`agent-md init` creates `.agent-md/skill.md`, a plain Markdown skill that tells coding agents:
+`agent-md init` writes a real agent skill as a folder containing `SKILL.md`, using the discovery path for the selected agent:
+
+- `--agent cursor`: `.cursor/skills/agent-markdown/SKILL.md`
+- `--agent claude-code`: `.claude/skills/agent-markdown/SKILL.md`
+- `--agent codex`: `.agents/skills/agent-markdown/SKILL.md`
+- `--agent opencode`: `.opencode/skills/agent-markdown/SKILL.md`
+- `--agent all`: installs all of the above project-local skill locations
+
+The CLI also keeps a reference copy at `.agent-md/skill.md` alongside the schema and component metadata.
+
+The skill tells coding agents:
 
 - When Agent Markdown is appropriate.
 - When plain Markdown is still the better choice.
@@ -72,7 +82,7 @@ Agent Markdown is designed to be installed into a project as both a runtime and 
 - Which safety rules to follow.
 - To run `agent-md validate` before calling a document complete.
 
-The current CLI supports Cursor and VSCode-oriented setup with `--agent cursor` or `--agent vscode`, including editor extension recommendations. Because the skill itself is plain Markdown, the same guidance can be reused by other popular coding-agent workflows that support project instructions, local rules, or skill files.
+The `SKILL.md` file includes skill frontmatter (`name`, `description`, and `license`) so agents can discover it on demand instead of loading it as an always-on rule.
 
 ## Installation
 
@@ -88,7 +98,8 @@ npx agent-md init --agent cursor
 `agent-md init` creates:
 
 - `agent-md.config.json`
-- `.agent-md/skill.md`
+- an agent-specific `SKILL.md` under `.cursor/skills`, `.claude/skills`, `.agents/skills`, or `.opencode/skills`
+- `.agent-md/skill.md` reference copy
 - `.agent-md/schema.json`
 - `.agent-md/components.json`
 - `examples/example.agent.md`
@@ -131,7 +142,7 @@ After installing the extension, reload Cursor or VSCode and open a `.agent.md` f
 npx agent-md init --agent cursor
 ```
 
-This bootstraps the local Agent Markdown configuration and installs the skill file under `.agent-md/skill.md`.
+This bootstraps the local Agent Markdown configuration and installs the skill in the selected agent's project-local skill directory.
 
 ### Ask an Agent to Create a Document
 

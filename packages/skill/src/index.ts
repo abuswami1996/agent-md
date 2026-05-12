@@ -1,6 +1,14 @@
 import { defaultConfig } from "@agent-md/schema";
 
-export const skillMarkdown = `# Agent Markdown Skill
+export const skillName = "agent-markdown";
+
+export const skillMarkdown = `---
+name: agent-markdown
+description: Create, validate, and revise local-first Agent Markdown .agent.md documents with charts, tables, maps, diagrams, metrics, tabs, local data, and safe workspace file references.
+license: MIT
+---
+
+# Agent Markdown Skill
 
 Use Agent Markdown when the user asks for interactive reports, dashboards, visual analysis, charts or tables in Markdown, or local visualization documents.
 
