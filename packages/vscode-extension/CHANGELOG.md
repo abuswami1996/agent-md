@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Added richer `::embed` cards with titles, captions, and safe artifact fallbacks.
+- Improved chart color defaults so charts remain visible in dark VSCode/Cursor themes.
+
 ## 0.1.4
 
 - Added GitHub Actions release workflow support for Marketplace and Open VSX publishing.

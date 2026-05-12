@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- Added controlled local artifact preview support to the bundled browser viewer.
+- Added content types for text, JSON, CSV, images, PDFs, and videos served through the local artifact endpoint.
+- Bundled the updated Agent Markdown Preview extension for richer embed cards and theme-visible chart colors.
+
 ## 0.1.4
 
 - Added release workflow support for npm trusted publishing with provenance.

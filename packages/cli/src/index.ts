@@ -15,7 +15,7 @@ import { loadConfig, resolveDocumentData, resolveSafeRealPath, artifactExtension
 
 const program = new Command();
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
-const cliVersion = "0.1.2";
+const cliVersion = "0.1.5";
 const extensionId = "AbhinavSwaminathan.agent-md-preview";
 const viewerDistCandidates = [
   path.resolve(cliDir, "../viewer-dist"),
