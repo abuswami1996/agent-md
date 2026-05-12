@@ -14,6 +14,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "verify": "npm test && npm run lint && npm run typecheck && npm run build",
+    "release:check": "node scripts/check-release.mjs",
+    "package:all": "npm run package -w agent-md-preview && npm run build -w @abuswami1996/agent-md && npm pack --dry-run -w @abuswami1996/agent-md && npm run ls:vsix -w agent-md-preview",
     "agent-md": "tsx packages/cli/src/index.ts"
   },
   "dependencies": {
@@ -53,7 +56,7 @@
   "devDependencies": {},
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/abuswami1996/agent-md.git"

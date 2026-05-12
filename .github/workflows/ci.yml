@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Package VSIX
+        run: npm run package -w agent-md-preview
+
+      - name: Rebuild CLI with bundled VSIX
+        run: npm run build -w @abuswami1996/agent-md
+
+      - name: Inspect npm package
+        run: npm pack --dry-run -w @abuswami1996/agent-md
+
+      - name: Inspect VSIX package
+        run: npm run ls:vsix -w agent-md-preview
+
+      - name: Check release artifacts
+        run: npm run release:check -- --no-remote
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
