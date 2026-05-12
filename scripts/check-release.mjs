@@ -88,7 +88,7 @@ check("VSIX package contents are allowlisted", () => {
   assertNoForbiddenFiles(files, "VSIX package");
 });
 
-if (!skipRemote) {
+if (!skipRemote && publishNpm) {
   check("npm version is not already published", async () => {
     const published = await npmVersionExists(cliPackage.name, cliPackage.version);
     assert(!published, `${cliPackage.name}@${cliPackage.version} is already published to npm.`);
