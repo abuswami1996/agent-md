@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import mermaid from "mermaid";
-import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, DocumentNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
+import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, DocumentNode, EmbedNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
 
 export function AgentMarkdownRenderer({ document }: { document: AgentMarkdownDocument }) {
   return <div className="agent-md-document">{document.nodes.map((node, index) => <NodeRenderer key={index} node={node} document={document} />)}</div>;
@@ -20,7 +20,7 @@ export function NodeRenderer({ node, document }: { node: DocumentNode; document:
   if (node.type === "timeline") return <div className="agent-md-card"><h3>Timeline</h3>{(node.events ?? []).map((event) => <p key={`${event.date}-${event.title}`}><strong>{event.date}</strong> {event.title}</p>)}</div>;
   if (node.type === "diagram") return <Diagram node={node} document={document} />;
   if (node.type === "map") return <MapView node={node} dataSources={document.dataSources} />;
-  if (node.type === "embed") return <div className="agent-md-card"><strong>{node.title ?? node.src}</strong><p>[Embed: {node.src}]</p></div>;
+  if (node.type === "embed") return <Embed node={node} document={document} />;
   if (node.type === "form") return <FormView node={node} />;
   if (node.type === "component") return <div className="agent-md-card">Registered component: {node.name}. Custom rendering disabled in current config.</div>;
   return null;
@@ -55,11 +55,15 @@ function Chart({ node, dataSources }: { node: ChartNode; dataSources: Record<str
 
 function renderChart(node: ChartNode, common: { data: Record<string, unknown>[] }) {
   const yKeys = Array.isArray(node.y) ? node.y : node.y ? [node.y] : [];
-  if (node.chartType === "bar") return <BarChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key) => <Bar key={key} dataKey={key} />)}</BarChart>;
-  if (node.chartType === "area") return <AreaChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{yKeys.map((key) => <Area key={key} dataKey={key} />)}</AreaChart>;
-  if (node.chartType === "scatter") return <ScatterChart><XAxis dataKey={node.x} /><YAxis dataKey={typeof node.y === "string" ? node.y : undefined} /><Tooltip /><Scatter data={common.data} /></ScatterChart>;
-  if (node.chartType === "pie") return <PieChart><Tooltip /><Pie data={common.data} dataKey={node.value} nameKey={node.label} /></PieChart>;
-  return <LineChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key) => <Line key={key} dataKey={key} />)}</LineChart>;
+  if (node.chartType === "bar") return <BarChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key, index) => <Bar key={key} dataKey={key} fill={chartColor(index)} />)}</BarChart>;
+  if (node.chartType === "area") return <AreaChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{yKeys.map((key, index) => <Area key={key} dataKey={key} fill={chartColor(index)} stroke={chartColor(index)} />)}</AreaChart>;
+  if (node.chartType === "scatter") return <ScatterChart><XAxis dataKey={node.x} /><YAxis dataKey={typeof node.y === "string" ? node.y : undefined} /><Tooltip /><Scatter data={common.data} fill={chartColor(0)} /></ScatterChart>;
+  if (node.chartType === "pie") return <PieChart><Tooltip /><Pie data={common.data} dataKey={node.value} nameKey={node.label} fill={chartColor(0)} /></PieChart>;
+  return <LineChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key, index) => <Line key={key} dataKey={key} stroke={chartColor(index)} />)}</LineChart>;
+}
+
+function chartColor(index: number) {
+  return `var(--agent-md-chart-${index + 1}, var(--agent-md-chart-1, #2563eb))`;
 }
 
 function DataTable({ node, dataSources }: { node: TableNode; dataSources: Record<string, DataSource> }) {
@@ -100,7 +104,7 @@ function Diagram({ node, document }: { node: DiagramNode; document: AgentMarkdow
     let cancelled = false;
     async function render() {
       try {
-        const source = node.source ?? (node.src && hasHttpArtifactEndpoint() ? await fetchArtifactText(document.sourcePath, node.src) : "");
+        const source = node.source ?? (node.src && hasHttpArtifactEndpoint() ? await fetchArtifactText(document.sourcePath, node.src, "diagram source") : "");
         if (!source.trim()) throw new Error(`No diagram source available for ${node.title ?? node.diagramType}.`);
         const mermaidSource = toMermaidSource(node, source);
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "default" });
@@ -117,6 +121,48 @@ function Diagram({ node, document }: { node: DiagramNode; document: AgentMarkdow
   }, [document.sourcePath, node]);
   if (error) return <ErrorCard message={error} raw={node.source ?? node.src} />;
   return <div className="agent-md-card"><h3>{node.title ?? "Diagram"}</h3>{svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : <p>Rendering diagram...</p>}</div>;
+}
+
+function Embed({ node, document }: { node: EmbedNode; document: AgentMarkdownDocument }) {
+  const mode = node.mode ?? "preview";
+  const url = artifactUrl(document.sourcePath, node.src);
+  const kind = artifactKind(node.src);
+  const canPreview = Boolean(url) && mode !== "link";
+  return <div className="agent-md-card agent-md-embed"><div className="agent-md-embed-header"><div><h3>{node.title ?? node.src}</h3><small>{node.src}</small></div>{url ? <a href={url} target="_blank" rel="noreferrer">{mode === "link" ? "Open artifact" : "Open"}</a> : null}</div>{node.caption ? <p className="agent-md-embed-caption">{node.caption}</p> : null}{canPreview ? <EmbedPreview node={node} url={url!} kind={kind} /> : <EmbedFallback mode={mode} hasUrl={Boolean(url)} kind={kind} />}</div>;
+}
+
+function EmbedPreview({ node, url, kind }: { node: EmbedNode; url: string; kind: ArtifactKind }) {
+  if (kind === "image") return <img className="agent-md-embed-image" src={url} alt={node.title ?? node.src} style={{ maxHeight: node.height, maxWidth: node.width }} />;
+  if (kind === "markdown" || kind === "text" || kind === "json" || kind === "csv") return <TextEmbed node={node} url={url} kind={kind} />;
+  if (kind === "video") return <video className="agent-md-embed-media" src={url} controls style={{ maxHeight: node.height, maxWidth: node.width }} />;
+  return <EmbedFallback mode={node.mode ?? "preview"} hasUrl={true} kind={kind} />;
+}
+
+function TextEmbed({ node, url, kind }: { node: EmbedNode; url: string; kind: Extract<ArtifactKind, "markdown" | "text" | "json" | "csv"> }) {
+  const [text, setText] = useState<string>();
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url).then(async (response) => {
+      if (!response.ok) throw new Error(`Unable to load artifact: ${response.status}`);
+      return response.text();
+    }).then((value) => {
+      if (!cancelled) setText(kind === "json" ? formatJson(value) : value);
+    }).catch((err) => {
+      if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load artifact");
+    });
+    return () => { cancelled = true; };
+  }, [kind, url]);
+  if (error) return <ErrorCard message={error} raw={node.src} />;
+  if (text == null) return <p className="agent-md-embed-loading">Loading artifact...</p>;
+  if (kind === "markdown" && (node.mode ?? "preview") === "preview") return <div className="agent-md-embed-markdown"><ReactMarkdown>{text}</ReactMarkdown></div>;
+  return <pre className="agent-md-embed-text">{text}</pre>;
+}
+
+function EmbedFallback({ mode, hasUrl, kind }: { mode: EmbedNode["mode"]; hasUrl: boolean; kind: ArtifactKind }) {
+  if (!hasUrl) return <p className="agent-md-embed-caption">Preview this artifact from the local browser viewer to load project files safely.</p>;
+  if (mode === "link") return null;
+  return <p className="agent-md-embed-caption">{kind === "html" ? "HTML embeds are opened as links and are not executed inline." : "This artifact type opens as a link."}</p>;
 }
 
 function MapView({ node, dataSources }: { node: MapNode; dataSources: Record<string, DataSource> }) {
@@ -154,10 +200,36 @@ function formatValue(value: unknown, format?: string) { return format === "curre
 function hasHttpArtifactEndpoint() {
   return typeof window !== "undefined" && window.location.protocol.startsWith("http");
 }
-async function fetchArtifactText(sourcePath: string, src: string) {
+function artifactUrl(sourcePath: string, src: string) {
+  if (!hasHttpArtifactEndpoint()) return undefined;
+  return `/artifact?file=${encodeURIComponent(sourcePath)}&src=${encodeURIComponent(src)}`;
+}
+async function fetchArtifactText(sourcePath: string, src: string, label = "artifact") {
   const response = await fetch(`/artifact?file=${encodeURIComponent(sourcePath)}&src=${encodeURIComponent(src)}`);
-  if (!response.ok) throw new Error(`Unable to load diagram source: ${response.status}`);
+  if (!response.ok) throw new Error(`Unable to load ${label}: ${response.status}`);
   return response.text();
+}
+
+type ArtifactKind = "markdown" | "text" | "json" | "csv" | "image" | "video" | "pdf" | "html" | "unknown";
+
+function artifactKind(src: string): ArtifactKind {
+  const ext = src.split(/[?#]/)[0]?.toLowerCase().split(".").pop() ?? "";
+  if (["md", "mmd", "mermaid", "txt"].includes(ext)) return ext === "md" ? "markdown" : "text";
+  if (["csv", "tsv"].includes(ext)) return "csv";
+  if (ext === "json") return "json";
+  if (["png", "jpg", "jpeg", "gif", "svg"].includes(ext)) return "image";
+  if (["webm", "mp4"].includes(ext)) return "video";
+  if (ext === "pdf") return "pdf";
+  if (ext === "html") return "html";
+  return "unknown";
+}
+
+function formatJson(value: string) {
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
+  }
 }
 
 function toMermaidSource(node: DiagramNode, source: string) {

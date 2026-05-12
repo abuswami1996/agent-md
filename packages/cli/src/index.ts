@@ -372,6 +372,15 @@ function contentType(file: string) {
   if (ext === ".css") return "text/css; charset=utf8";
   if (ext === ".svg") return "image/svg+xml";
   if (ext === ".json") return "application/json";
+  if (ext === ".md" || ext === ".mmd" || ext === ".mermaid" || ext === ".txt") return "text/plain; charset=utf8";
+  if (ext === ".csv") return "text/csv; charset=utf8";
+  if (ext === ".tsv") return "text/tab-separated-values; charset=utf8";
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".pdf") return "application/pdf";
+  if (ext === ".mp4") return "video/mp4";
+  if (ext === ".webm") return "video/webm";
   return "application/octet-stream";
 }
 
