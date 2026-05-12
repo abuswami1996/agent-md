@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Bumped the extension package for republishing after Marketplace/Open VSX documentation and metadata updates.
+
 ## 0.1.2
 
 - Clarified Cursor installation guidance: Cursor extension ID installs require Open VSX, while VSCode uses the Visual Studio Marketplace listing.

@@ -1,5 +1,7 @@
 # Agent Markdown
 
+[![CI](https://github.com/abuswami1996/agent-md/actions/workflows/ci.yml/badge.svg)](https://github.com/abuswami1996/agent-md/actions/workflows/ci.yml)
+
 Agent Markdown is a local-first Markdown format for building interactive, data-rich documents without asking agents to emit full HTML, custom JavaScript, or bulky application code.
 
 It gives coding agents a small, opinionated set of Markdown primitives for charts, metrics, tables, maps, diagrams, timelines, tabs, callouts, forms, queries, and local embeds. The goal is simple: keep the authoring surface compact enough for agent context windows while giving humans a richer way to inspect and navigate data-heavy work.
@@ -138,6 +140,12 @@ If a bundled VSIX exists, the helper prints the install command:
 ```bash
 cursor --install-extension "/path/to/agent-md-preview.vsix" --force
 ```
+
+## CI and Releases
+
+Pull requests and pushes to `main` run the GitHub Actions CI workflow: tests, lint, typecheck, full build, VSIX packaging, npm package dry-run, VSIX listing, release artifact checks, and high-severity npm audit.
+
+Releases are intentionally manual. Use the `Release` workflow in GitHub Actions, provide a tag such as `v0.1.3`, and choose which destinations to publish: npm, Visual Studio Marketplace, Open VSX, and GitHub Releases. See `PUBLISHING.md` for required secrets, npm trusted publishing setup, and the full release runbook.
 
 After installing the extension, reload Cursor or VSCode and open a `.agent.md` file.
 

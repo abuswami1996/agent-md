@@ -10,6 +10,11 @@ It assumes the repository keeps the current monorepo shape:
 
 Use this as a release runbook. Do not publish from a dirty working tree, an unreviewed branch, or a package whose metadata has not been finalized.
 
+The repository includes two GitHub Actions workflows:
+
+- `CI`: runs on pull requests to `main` and pushes to `main`.
+- `Release`: runs manually from GitHub Actions with publish toggles for npm, Visual Studio Marketplace, Open VSX, and GitHub Releases.
+
 ## Release Principles
 
 Publish the extension and npm package as a single product release, but treat them as separate artifacts:
@@ -49,7 +54,16 @@ npm whoami
 npm profile enable-2fa auth-and-writes
 ```
 
-If you plan to publish from CI later, use npm trusted publishing or an automation token. For the first manual release, interactive publishing is simpler and easier to audit.
+For CI publishing, use npm trusted publishing instead of a long-lived npm token. Configure the package on npm with:
+
+```text
+GitHub owner: abuswami1996
+Repository: agent-md
+Workflow filename: release.yml
+Environment: leave blank unless you add a protected GitHub environment
+```
+
+The release workflow publishes with `npm publish --provenance`, which uses GitHub's OIDC token and does not require `NPM_TOKEN`.
 
 ### Visual Studio Marketplace
 
@@ -87,6 +101,28 @@ npx vsce login AbhinavSwaminathan
 
 When prompted, paste the Personal Access Token.
 
+### GitHub Repository Secrets
+
+Add these repository secrets before enabling the release workflow's publish toggles:
+
+```text
+VSCE_PAT
+OVSX_PAT
+```
+
+`VSCE_PAT` is the Azure DevOps Personal Access Token used by `vsce publish`. `OVSX_PAT` is the Open VSX access token used by `ovsx publish`.
+
+Do not add an npm token when trusted publishing is configured. The release workflow uses `id-token: write` and `npm publish --provenance`.
+
+### Branch Protection
+
+After `CI` has passed at least once on a pull request, enable branch protection for `main`:
+
+- Require the `CI / Verify` check to pass before merge.
+- Require pull requests before merging if you want to block direct pushes.
+- Require review approvals if you want an explicit human gate.
+- Leave publishing out of PR checks. Publishing only happens in the manual `Release` workflow.
+
 ## Pre-Release Metadata Checklist
 
 Before publishing, make the packages look like public packages rather than local prototypes.
@@ -112,7 +148,7 @@ Current package:
 
 ```text
 name: @abuswami1996/agent-md
-version: 0.1.0
+version: 0.1.2
 bin: agent-md -> dist/index.js
 ```
 
@@ -212,23 +248,14 @@ git tag: v0.1.0
 Run this from the repository root:
 
 ```bash
-npm install
-npm test
-npm run typecheck
-npm run lint
-npm run build
+npm ci
+npm run verify
 ```
 
 Package the extension:
 
 ```bash
-npm run package -w agent-md-preview
-```
-
-Rebuild the CLI after packaging the extension so the latest VSIX is copied into `packages/cli`:
-
-```bash
-npm run build -w @abuswami1996/agent-md
+npm run package:all
 ```
 
 Confirm the expected artifacts exist:
@@ -253,6 +280,14 @@ npm run ls:vsix -w agent-md-preview
 ```
 
 You should only see the extension manifest, Marketplace docs/assets, license, changelog, and built `dist` runtime assets. You should not see source-only files, `.env` files, local secrets, large unrelated folders, `node_modules`, `.git`, tests, root lockfiles, nested VSIX files, or monorepo internals.
+
+Run the local release safety checks:
+
+```bash
+npm run release:check -- --no-remote
+```
+
+Use `--no-remote` for local and CI checks. The manual GitHub release workflow runs the same script without `--no-remote` and checks npm when the npm publish toggle is enabled.
 
 ## Manual Smoke Tests Before Publishing
 
@@ -301,6 +336,34 @@ Use the comprehensive example:
 ```text
 packages/examples/fixtures/full-interactive-dashboard.agent.md
 ```
+
+## Manual GitHub Actions Release
+
+Prefer the GitHub Actions `Release` workflow for repeatable releases after CI is green on `main`.
+
+1. Merge the prepared release branch to `main`.
+2. Open GitHub Actions.
+3. Select the `Release` workflow.
+4. Click `Run workflow`.
+5. Enter the release tag, for example `v0.1.3`.
+6. Select the publish destinations:
+   - `publish_npm`
+   - `publish_vscode`
+   - `publish_openvsx`
+   - `create_github_release`
+7. Run once with all publish toggles disabled to verify packaging and release checks.
+8. Run the real release with only the destinations you intend to publish.
+
+The workflow runs tests, lint, typecheck, build, VSIX packaging, npm dry-run inspection, VSIX listing, release checks, and high-severity npm audit before any publish step.
+
+Important behavior:
+
+- `publish_npm` uses npm trusted publishing and provenance. Configure npm trusted publishing first; do not store `NPM_TOKEN`.
+- `publish_vscode` requires the `VSCE_PAT` repository secret.
+- `publish_openvsx` requires the `OVSX_PAT` repository secret.
+- `create_github_release` creates or updates the requested tag release and uploads `packages/vscode-extension/dist/agent-md-preview.vsix`.
+- If the npm publish toggle is enabled, the release tag must match `packages/cli/package.json`.
+- If either extension publish toggle is enabled, the release tag must match `packages/vscode-extension/package.json`.
 
 ## Publish the VSCode Extension
 
@@ -525,33 +588,25 @@ Users will receive the update through the normal extension update flow.
 
 ## Recommended First Public Release Flow
 
-For this repository's first public release, use this exact order:
+For this repository's first automated release, use this exact order:
 
 ```bash
 # 1. Verify
-npm install
-npm test
-npm run typecheck
-npm run lint
-npm run build
+npm ci
+npm run verify
 
-# 2. Package extension
-npm run package -w agent-md-preview
+# 2. Package and inspect artifacts
+npm run package:all
 
-# 3. Rebuild CLI so the latest VSIX is bundled
-npm run build -w @abuswami1996/agent-md
+# 3. Run release checks locally
+npm run release:check -- --no-remote
+```
 
-# 4. Inspect artifacts
-npm pack --dry-run -w @abuswami1996/agent-md
-npm run ls:vsix -w agent-md-preview
+Then push the release branch, merge it through a PR, and run the GitHub Actions `Release` workflow from `main`.
 
-# 5. Publish extension
-npm run publish:marketplace -w agent-md-preview
+After publishing, smoke test the published package:
 
-# 6. Publish npm package
-npm publish -w @abuswami1996/agent-md --access public
-
-# 7. Smoke test published package
+```bash
 tmpdir="$(mktemp -d)"
 cd "$tmpdir"
 npm init -y
