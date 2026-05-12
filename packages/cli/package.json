@@ -1,6 +1,6 @@
 {
   "name": "@abuswami1996/agent-md",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Local-first Agent Markdown runtime, validator, browser viewer, and agent skill installer.",
   "license": "MIT",
   "author": "Abhinav Swaminathan",

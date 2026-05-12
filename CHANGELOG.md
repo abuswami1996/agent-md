@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- Added rich local `::embed` previews for Markdown, text, CSV, Mermaid, JSON, images, and videos in the browser viewer.
+- Added safe embed cards and link fallbacks for VSCode/Cursor previews without widening webview local file access.
+- Improved chart color defaults so extension preview charts remain visible in dark editor themes.
+
 ## 0.1.4
 
 - Added GitHub Actions CI for pull request and `main` branch verification.
