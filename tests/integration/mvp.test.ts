@@ -48,6 +48,15 @@ describe("Agent Markdown MVP", () => {
     expect(resolved.diagnostics.filter((diagnostic) => diagnostic.severity === "error")).toHaveLength(0);
   });
 
+  it("validates local embed artifacts", async () => {
+    const source = `::embed\ntitle: Executive summary\nsrc: ../artifacts/executive-summary.md\nmode: preview\ncaption: Local Markdown artifact\n:::`;
+    const file = path.join(root, "packages/examples/fixtures/full-interactive-dashboard.agent.md");
+    const document = parseAgentMarkdown({ source, sourcePath: file });
+    const resolved = await resolveDocumentData(document, root);
+    expect(resolved.nodes[0]).toMatchObject({ type: "embed", src: "../artifacts/executive-summary.md", mode: "preview" });
+    expect(resolved.diagnostics.filter((diagnostic) => diagnostic.blockType === "embed" && diagnostic.severity === "error")).toHaveLength(0);
+  });
+
   it("runs declarative local queries", () => {
     const source = { id: "revenue", origin: "inline" as const, format: "csv" as const, rows: [{ segment: "Enterprise", amount: 5 }, { segment: "SMB", amount: 1 }], diagnostics: [] };
     const derived = runQuery(source, { type: "query", data: "revenue", where: { segment: "Enterprise" }, select: ["amount"] });
