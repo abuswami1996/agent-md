@@ -78,7 +78,7 @@ The current CLI supports Cursor and VSCode-oriented setup with `--agent cursor` 
 
 ### Published Package Flow
 
-Once published, the intended user flow is:
+Install the CLI and initialize a project:
 
 ```bash
 npm install agent-md
@@ -95,6 +95,15 @@ npx agent-md init --agent cursor
 - `.vscode/extensions.json` recommendations when using `--agent cursor` or `--agent vscode`
 
 The installed skill file gives coding agents guidance for when to use Agent Markdown, which primitives are available, and how to validate generated documents.
+
+Install the published VSCode/Cursor extension from the Marketplace:
+
+```bash
+cursor --install-extension AbhinavSwaminathan.agent-md-preview
+```
+
+Marketplace listing:
+[Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
 
 ### Local Development Flow
 
@@ -174,7 +183,16 @@ npx agent-md serve --all-md
 
 ### Use the VSCode/Cursor Preview Extension
 
-Build and package the extension from this repo:
+Install the published extension:
+
+```bash
+cursor --install-extension AbhinavSwaminathan.agent-md-preview
+```
+
+You can also install it from the Marketplace:
+[Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
+
+For local development, build and package the extension from this repo:
 
 ```bash
 npm run package -w agent-md-preview
@@ -349,7 +367,6 @@ Good next areas for contribution include:
 - More primitives and richer primitive options.
 - Better keyboard and accessibility coverage in rendered primitives.
 - Additional agent-specific skill templates.
-- Marketplace publishing for the VSCode/Cursor extension.
 - Snapshot and browser-based extension smoke tests.
 - Renderer performance improvements and code splitting for large diagrams.
 - Expanded docs and example galleries.
@@ -378,4 +395,4 @@ When proposing a new primitive, include:
 
 ## License
 
-No license has been specified yet.
+MIT.

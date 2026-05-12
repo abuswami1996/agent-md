@@ -14,7 +14,16 @@ npm install agent-md
 npx agent-md init --agent cursor
 ```
 
-This creates local configuration, an agent skill file, schema metadata, starter examples, and VSCode/Cursor extension recommendations.
+This creates local configuration, an agent skill file, schema metadata, starter examples, and VSCode/Cursor extension recommendations for `AbhinavSwaminathan.agent-md-preview`.
+
+Install the published editor extension:
+
+```bash
+cursor --install-extension AbhinavSwaminathan.agent-md-preview
+```
+
+Marketplace listing:
+[Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
 
 ## Commands
 
@@ -24,6 +33,8 @@ npx agent-md serve
 npx agent-md export examples/example.agent.md --format json
 npx agent-md vscode-extension
 ```
+
+`npx agent-md vscode-extension` prints local VSIX install instructions when the CLI package includes a bundled extension. The Marketplace extension is the preferred install path for most users.
 
 ## Security
 

@@ -4,6 +4,15 @@ Agent Markdown Preview adds an in-editor preview for `.agent.md` and `.amd.md` f
 
 Agent Markdown is a local-first Markdown format for interactive documents with charts, metrics, tables, maps, diagrams, tabs, callouts, queries, forms, and local artifact references. It gives coding agents a compact syntax for data-rich context without requiring generated HTML, arbitrary JavaScript, or a full web app.
 
+Marketplace listing:
+[Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
+
+Extension ID:
+
+```text
+AbhinavSwaminathan.agent-md-preview
+```
+
 ## Features
 
 - `Agent Markdown: Open Preview` command.
@@ -26,6 +35,18 @@ The extension is designed for local workspace preview:
 - Raw HTML execution and arbitrary document JavaScript are not supported.
 
 ## Usage
+
+Install from the command line:
+
+```bash
+cursor --install-extension AbhinavSwaminathan.agent-md-preview
+```
+
+For VSCode:
+
+```bash
+code --install-extension AbhinavSwaminathan.agent-md-preview
+```
 
 Open a `.agent.md` or `.amd.md` file, then run:
 
