@@ -2,18 +2,18 @@
   "name": "agent-md-preview",
   "displayName": "Agent Markdown Preview",
   "description": "Preview local-first Agent Markdown documents in VSCode and Cursor.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "AbhinavSwaminathan",
   "license": "MIT",
   "author": "Abhinav Swaminathan",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agent-md/agent-md.git",
+    "url": "git+https://github.com/abuswami1996/agent-md.git",
     "directory": "packages/vscode-extension"
   },
-  "homepage": "https://github.com/agent-md/agent-md#readme",
+  "homepage": "https://github.com/abuswami1996/agent-md#readme",
   "bugs": {
-    "url": "https://github.com/agent-md/agent-md/issues"
+    "url": "https://github.com/abuswami1996/agent-md/issues"
   },
   "keywords": [
     "agent-markdown",
@@ -28,8 +28,13 @@
     "theme": "dark"
   },
   "type": "commonjs",
-  "engines": { "vscode": "^1.92.0" },
-  "categories": ["Visualization", "Other"],
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
   "activationEvents": [
     "workspaceContains:**/*.agent.md",
     "workspaceContains:**/*.amd.md"
@@ -37,7 +42,10 @@
   "main": "dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "agentMd.openPreview", "title": "Agent Markdown: Open Preview" }
+      {
+        "command": "agentMd.openPreview",
+        "title": "Agent Markdown: Open Preview"
+      }
     ],
     "keybindings": [
       {
@@ -56,7 +64,9 @@
         }
       ],
       "commandPalette": [
-        { "command": "agentMd.openPreview" }
+        {
+          "command": "agentMd.openPreview"
+        }
       ]
     }
   },

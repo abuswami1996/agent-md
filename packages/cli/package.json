@@ -6,11 +6,11 @@
   "author": "Abhinav Swaminathan",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/agent-md/agent-md.git"
+    "url": "git+https://github.com/abuswami1996/agent-md.git"
   },
-  "homepage": "https://github.com/agent-md/agent-md#readme",
+  "homepage": "https://github.com/abuswami1996/agent-md#readme",
   "bugs": {
-    "url": "https://github.com/agent-md/agent-md/issues"
+    "url": "https://github.com/abuswami1996/agent-md/issues"
   },
   "keywords": [
     "markdown",
