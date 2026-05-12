@@ -23,6 +23,12 @@ Rules:
 - Add frontmatter with format: agent-md and version: 0.1.
 - Run agent-md validate before considering a document complete.
 
+Supporting files in this skill directory:
+- agent-md.config.json: default runtime configuration.
+- schema.json: primitive reference schema.
+- components.json: registered component reference.
+- examples/example.agent.md: starter Agent Markdown document.
+
 Supported MVP primitives:
 - ::metric for KPI cards.
 - ::chart for line, bar, area, scatter, and pie charts.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Clarified Cursor installation guidance: Cursor extension ID installs require Open VSX, while VSCode uses the Visual Studio Marketplace listing.
+
 ## 0.1.0
 
 Initial MVP release candidate.

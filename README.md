@@ -71,7 +71,7 @@ Agent Markdown is designed to be installed into a project as both a runtime and 
 - `--agent opencode`: `.opencode/skills/agent-markdown/SKILL.md`
 - `--agent all`: installs all of the above project-local skill locations
 
-The CLI also keeps a reference copy at `.agent-md/skill.md` alongside the schema and component metadata.
+Each skill directory is self-contained with `SKILL.md`, `agent-md.config.json`, `schema.json`, `components.json`, and `examples/example.agent.md`.
 
 The skill tells coding agents:
 
@@ -99,7 +99,6 @@ npx agent-md init --agent cursor
 
 - `agent-md.config.json`
 - an agent-specific `SKILL.md` under `.cursor/skills`, `.claude/skills`, `.agents/skills`, or `.opencode/skills`
-- `.agent-md/skill.md` reference copy
 - `.agent-md/schema.json`
 - `.agent-md/components.json`
 - `examples/example.agent.md`
@@ -107,14 +106,22 @@ npx agent-md init --agent cursor
 
 The installed skill file gives coding agents guidance for when to use Agent Markdown, which primitives are available, and how to validate generated documents.
 
-Install the published VSCode/Cursor extension from the Marketplace:
+Install the editor extension.
+
+For VSCode, install from the Visual Studio Marketplace:
 
 ```bash
-cursor --install-extension AbhinavSwaminathan.agent-md-preview
+code --install-extension AbhinavSwaminathan.agent-md-preview
 ```
 
 Marketplace listing:
 [Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
+
+Cursor uses Open VSX for extension ID installs. Until the extension is also published there, install the bundled VSIX:
+
+```bash
+npx agent-md vscode-extension --install --editor cursor
+```
 
 ### Local Development Flow
 
@@ -194,14 +201,20 @@ npx agent-md serve --all-md
 
 ### Use the VSCode/Cursor Preview Extension
 
-Install the published extension:
+Install the published extension in VSCode:
 
 ```bash
-cursor --install-extension AbhinavSwaminathan.agent-md-preview
+code --install-extension AbhinavSwaminathan.agent-md-preview
 ```
 
-You can also install it from the Marketplace:
+You can also view it on the Marketplace:
 [Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
+
+For Cursor, use the bundled VSIX unless the extension has also been published to Open VSX:
+
+```bash
+npx agent-md vscode-extension --install --editor cursor
+```
 
 For local development, build and package the extension from this repo:
 

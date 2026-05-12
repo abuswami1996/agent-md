@@ -15,6 +15,7 @@ import { loadConfig, resolveDocumentData, resolveSafeRealPath, artifactExtension
 
 const program = new Command();
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
+const cliVersion = "0.1.2";
 const extensionId = "AbhinavSwaminathan.agent-md-preview";
 const viewerDistCandidates = [
   path.resolve(cliDir, "../viewer-dist"),
@@ -25,7 +26,7 @@ const vsixCandidates = [
   path.resolve(cliDir, "../../vscode-extension/dist/agent-md-preview.vsix")
 ];
 
-program.name("agent-md").description("Local-first Agent Markdown runtime").version("0.1.0");
+program.name("agent-md").description("Local-first Agent Markdown runtime").version(cliVersion);
 
 program.command("init")
   .option("--agent <agent>", "agent skill flavor", "generic")
@@ -35,7 +36,6 @@ program.command("init")
     await writeIfMissing(path.join(root, "agent-md.config.json"), configJson());
     await fs.mkdir(path.join(root, ".agent-md"), { recursive: true });
     await fs.mkdir(path.join(root, "examples"), { recursive: true });
-    await writeIfMissing(path.join(root, ".agent-md", "skill.md"), skillMarkdown);
     const installedSkillPaths = await installAgentSkill(root, agent);
     await writeIfMissing(path.join(root, ".agent-md", "schema.json"), schemaJson());
     await writeIfMissing(path.join(root, ".agent-md", "components.json"), componentsJson());
@@ -148,8 +148,13 @@ async function writeIfMissing(file: string, content: string) {
 async function installAgentSkill(root: string, agent: string) {
   const skillPaths = skillInstallPaths(root, agent);
   for (const skillPath of skillPaths) {
-    await fs.mkdir(path.dirname(skillPath), { recursive: true });
+    const skillDir = path.dirname(skillPath);
+    await fs.mkdir(path.join(skillDir, "examples"), { recursive: true });
     await writeIfMissing(skillPath, skillMarkdown);
+    await writeIfMissing(path.join(skillDir, "agent-md.config.json"), configJson());
+    await writeIfMissing(path.join(skillDir, "schema.json"), schemaJson());
+    await writeIfMissing(path.join(skillDir, "components.json"), componentsJson());
+    await writeIfMissing(path.join(skillDir, "examples", "example.agent.md"), exampleAgentMarkdown);
   }
   return skillPaths;
 }

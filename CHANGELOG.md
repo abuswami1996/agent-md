@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Corrected agent skill installation paths for Cursor, Claude Code, Codex, and OpenCode.
+- Added skill-local config, schema, component registry, and example support files.
+- Clarified Cursor extension installation behavior and Open VSX requirements.
+
 ## 0.1.0
 
 Initial MVP release candidate.

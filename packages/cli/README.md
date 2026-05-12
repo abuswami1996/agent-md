@@ -27,11 +27,17 @@ Use the `--agent` flag to install the skill in the project-local location for yo
 Install the published editor extension:
 
 ```bash
-cursor --install-extension AbhinavSwaminathan.agent-md-preview
+code --install-extension AbhinavSwaminathan.agent-md-preview
 ```
 
 Marketplace listing:
 [Agent Markdown Preview](https://marketplace.visualstudio.com/items?itemName=AbhinavSwaminathan.agent-md-preview)
+
+Cursor uses Open VSX for extension ID installs. Until Agent Markdown Preview is published there too, install the bundled VSIX:
+
+```bash
+npx agent-md vscode-extension --install --editor cursor
+```
 
 ## Commands
 
@@ -42,7 +48,7 @@ npx agent-md export examples/example.agent.md --format json
 npx agent-md vscode-extension
 ```
 
-`npx agent-md vscode-extension` prints local VSIX install instructions when the CLI package includes a bundled extension. The Marketplace extension is the preferred install path for most users.
+`npx agent-md vscode-extension` prints local VSIX install instructions when the CLI package includes a bundled extension. The Visual Studio Marketplace extension is the preferred install path for VSCode users; Cursor users should use the bundled VSIX until an Open VSX listing exists.
 
 ## Security
 

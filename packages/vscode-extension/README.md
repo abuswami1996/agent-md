@@ -39,13 +39,13 @@ The extension is designed for local workspace preview:
 Install from the command line:
 
 ```bash
-cursor --install-extension AbhinavSwaminathan.agent-md-preview
+code --install-extension AbhinavSwaminathan.agent-md-preview
 ```
 
-For VSCode:
+Cursor uses Open VSX for extension ID installs. Until Agent Markdown Preview is published there too, install the bundled VSIX from the CLI package:
 
 ```bash
-code --install-extension AbhinavSwaminathan.agent-md-preview
+npx agent-md vscode-extension --install --editor cursor
 ```
 
 Open a `.agent.md` or `.amd.md` file, then run:

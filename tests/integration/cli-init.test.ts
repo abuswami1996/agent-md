@@ -18,7 +18,10 @@ describe("agent-md init", () => {
       const extensions = JSON.parse(await fs.readFile(path.join(temp, ".vscode/extensions.json"), "utf8")) as { recommendations: string[] };
       expect(extensions.recommendations).toContain("AbhinavSwaminathan.agent-md-preview");
       await expectSkill(temp, ".cursor/skills/agent-markdown/SKILL.md");
-      await fs.access(path.join(temp, ".agent-md/skill.md"));
+      await fs.access(path.join(temp, ".cursor/skills/agent-markdown/agent-md.config.json"));
+      await fs.access(path.join(temp, ".cursor/skills/agent-markdown/schema.json"));
+      await fs.access(path.join(temp, ".cursor/skills/agent-markdown/components.json"));
+      await fs.access(path.join(temp, ".cursor/skills/agent-markdown/examples/example.agent.md"));
       await fs.access(path.join(temp, "examples/example.agent.md"));
     } finally {
       await fs.rm(temp, { recursive: true, force: true });
@@ -72,4 +75,9 @@ async function expectSkill(root: string, relativePath: string) {
   expect(content).toContain("name: agent-markdown");
   expect(content).toContain("description:");
   expect(content).toContain("# Agent Markdown Skill");
+  const skillDir = path.dirname(path.join(root, relativePath));
+  await fs.access(path.join(skillDir, "agent-md.config.json"));
+  await fs.access(path.join(skillDir, "schema.json"));
+  await fs.access(path.join(skillDir, "components.json"));
+  await fs.access(path.join(skillDir, "examples/example.agent.md"));
 }

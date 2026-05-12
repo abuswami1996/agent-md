@@ -1746,7 +1746,7 @@ Generated as a tool-specific project skill:
 - Codex: `.agents/skills/agent-markdown/SKILL.md`
 - OpenCode: `.opencode/skills/agent-markdown/SKILL.md`
 
-A reference copy is also generated at `.agent-md/skill.md`.
+Each skill directory also contains support files: `agent-md.config.json`, `schema.json`, `components.json`, and `examples/example.agent.md`.
 
 15.2 Skill contents
 
@@ -2153,7 +2153,7 @@ Phase 6: Agent skill packaging
 Deliverables:
 
 1. Tool-specific `SKILL.md` installation for Cursor, Claude Code, Codex, and OpenCode.
-2. `.agent-md/skill.md` reference copy.
+2. Skill-local support files: config, schema, component registry, and example document.
 3. Agent adapter templates.
 4. Example files.
 5. Documentation.

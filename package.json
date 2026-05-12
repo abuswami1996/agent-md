@@ -53,5 +53,13 @@
   "devDependencies": {},
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abuswami1996/agent-md.git"
+  },
+  "bugs": {
+    "url": "https://github.com/abuswami1996/agent-md/issues"
+  },
+  "homepage": "https://github.com/abuswami1996/agent-md#readme"
 }

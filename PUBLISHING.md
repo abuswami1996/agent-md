@@ -272,7 +272,10 @@ Verify:
 
 - `agent-md.config.json` exists.
 - `.cursor/skills/agent-markdown/SKILL.md` exists for the Cursor smoke test.
-- `.agent-md/skill.md` exists as the reference copy.
+- `.cursor/skills/agent-markdown/agent-md.config.json` exists.
+- `.cursor/skills/agent-markdown/schema.json` exists.
+- `.cursor/skills/agent-markdown/components.json` exists.
+- `.cursor/skills/agent-markdown/examples/example.agent.md` exists.
 - `.vscode/extensions.json` recommends the extension ID.
 - `examples/example.agent.md` exists.
 - `npx agent-md validate` succeeds.
@@ -337,21 +340,21 @@ After publishing:
 2. Confirm the extension ID.
 3. Confirm the README renders correctly.
 4. Confirm the command, keybinding, and categories appear as expected.
-5. Install from the Marketplace in a clean VSCode or Cursor profile.
+5. Install from the Marketplace in a clean VSCode profile.
 
 If the final extension ID is not `AbhinavSwaminathan.agent-md-preview`, update the CLI recommendation before publishing npm.
 
-## Publish to Open VSX, Optional
+## Publish to Open VSX for Cursor
 
-The Visual Studio Marketplace is the standard path for VSCode. Some editor distributions use Open VSX.
+The Visual Studio Marketplace is the standard path for VSCode. Cursor uses the Open VSX registry for extension ID installs.
 
-If you want broader compatibility, publish the same VSIX to Open VSX:
+To make `cursor --install-extension AbhinavSwaminathan.agent-md-preview` work, publish the same VSIX to Open VSX:
 
 ```bash
 npx ovsx publish packages/vscode-extension/dist/agent-md-preview.vsix -p <OPEN_VSX_TOKEN>
 ```
 
-This step is optional. If you support it, document both Marketplace and Open VSX install paths.
+Until this is published, Cursor users should install the bundled VSIX with `npx agent-md vscode-extension --install --editor cursor`.
 
 ## Publish the npm Package
 
@@ -482,7 +485,8 @@ During publishing:
 After publishing:
 
 - Install from npm in a clean project.
-- Install extension from Marketplace.
+- Install extension from Marketplace in VSCode.
+- Install extension from Open VSX or bundled VSIX in Cursor.
 - Run `agent-md init --agent cursor`.
 - Open an `.agent.md` file.
 - Run `Agent Markdown: Open Preview`.
