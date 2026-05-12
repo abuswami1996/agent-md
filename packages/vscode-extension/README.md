@@ -61,7 +61,7 @@ You can also use the preview keybinding while an Agent Markdown file is focused.
 Install and initialize the CLI in a project:
 
 ```bash
-npm install agent-md
+npm install @abuswami1996/agent-md
 npx agent-md init --agent cursor
 ```
 

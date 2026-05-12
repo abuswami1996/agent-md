@@ -1,5 +1,5 @@
 {
-  "name": "agent-md",
+  "name": "@abuswami1996/agent-md",
   "version": "0.1.0",
   "description": "Local-first Agent Markdown runtime, validator, browser viewer, and agent skill installer.",
   "license": "MIT",

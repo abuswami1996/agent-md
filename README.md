@@ -81,7 +81,7 @@ The current CLI supports Cursor and VSCode-oriented setup with `--agent cursor` 
 Install the CLI and initialize a project:
 
 ```bash
-npm install agent-md
+npm install @abuswami1996/agent-md
 npx agent-md init --agent cursor
 ```
 
@@ -196,7 +196,7 @@ For local development, build and package the extension from this repo:
 
 ```bash
 npm run package -w agent-md-preview
-npm run build -w agent-md
+npm run build -w @abuswami1996/agent-md
 ```
 
 Install the bundled extension:

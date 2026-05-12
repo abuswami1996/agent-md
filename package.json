@@ -10,7 +10,7 @@
     "agent-md": "packages/cli/dist/index.js"
   },
   "scripts": {
-    "build": "npm run build -w @agent-md/schema && npm run build -w @agent-md/parser && npm run build -w @agent-md/resolver && npm run build -w @agent-md/skill && npm run build -w @agent-md/renderer-react && npm run build -w @agent-md/viewer && npm run build -w agent-md-preview && npm run build -w agent-md",
+    "build": "npm run build -w @agent-md/schema && npm run build -w @agent-md/parser && npm run build -w @agent-md/resolver && npm run build -w @agent-md/skill && npm run build -w @agent-md/renderer-react && npm run build -w @agent-md/viewer && npm run build -w agent-md-preview && npm run build -w @abuswami1996/agent-md",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

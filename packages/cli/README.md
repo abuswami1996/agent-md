@@ -5,7 +5,7 @@
 ## Install
 
 ```bash
-npm install agent-md
+npm install @abuswami1996/agent-md
 ```
 
 ## Initialize a Project

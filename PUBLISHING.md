@@ -4,7 +4,7 @@ This guide explains how to publish Agent Markdown professionally to npm and the 
 
 It assumes the repository keeps the current monorepo shape:
 
-- npm CLI package: `packages/cli`, published as `agent-md`
+- npm CLI package: `packages/cli`, published as `@abuswami1996/agent-md` with the `agent-md` binary
 - VSCode/Cursor extension package: `packages/vscode-extension`, published as `AbhinavSwaminathan.agent-md-preview`
 - Root package: private workspace orchestrator, not published
 
@@ -32,7 +32,7 @@ The recommended release order is:
 
 ### npm
 
-Create or use an npm account with permission to publish `agent-md`.
+Create or use an npm account with permission to publish `@abuswami1996/agent-md`.
 
 Recommended account posture:
 
@@ -111,7 +111,7 @@ Review `packages/cli/package.json`.
 Current package:
 
 ```text
-name: agent-md
+name: @abuswami1996/agent-md
 version: 0.1.0
 bin: agent-md -> dist/index.js
 ```
@@ -202,7 +202,7 @@ Recommended version policy:
 Keep the npm CLI and VSCode extension versions aligned when they ship together. For example:
 
 ```text
-agent-md npm package: 0.1.0
+@abuswami1996/agent-md npm package: 0.1.0
 agent-md-preview extension: 0.1.0
 git tag: v0.1.0
 ```
@@ -228,7 +228,7 @@ npm run package -w agent-md-preview
 Rebuild the CLI after packaging the extension so the latest VSIX is copied into `packages/cli`:
 
 ```bash
-npm run build -w agent-md
+npm run build -w @abuswami1996/agent-md
 ```
 
 Confirm the expected artifacts exist:
@@ -243,7 +243,7 @@ test -d packages/cli/viewer-dist
 Inspect the npm package contents:
 
 ```bash
-npm pack --dry-run -w agent-md
+npm pack --dry-run -w @abuswami1996/agent-md
 ```
 
 Inspect the VSCode extension package contents:
@@ -364,32 +364,32 @@ npm run typecheck
 npm run lint
 npm run build
 npm run package -w agent-md-preview
-npm run build -w agent-md
-npm pack --dry-run -w agent-md
+npm run build -w @abuswami1996/agent-md
+npm pack --dry-run -w @abuswami1996/agent-md
 ```
 
 Publish the CLI package:
 
 ```bash
-npm publish -w agent-md --access public
+npm publish -w @abuswami1996/agent-md --access public
 ```
 
 If your npm account requires a one-time password:
 
 ```bash
-npm publish -w agent-md --access public --otp <OTP>
+npm publish -w @abuswami1996/agent-md --access public --otp <OTP>
 ```
 
 For a prerelease or beta:
 
 ```bash
-npm publish -w agent-md --access public --tag beta
+npm publish -w @abuswami1996/agent-md --access public --tag beta
 ```
 
 For a stable release, use the default `latest` tag or specify it explicitly:
 
 ```bash
-npm publish -w agent-md --access public --tag latest
+npm publish -w @abuswami1996/agent-md --access public --tag latest
 ```
 
 ## Post-Publish npm Smoke Test
@@ -400,7 +400,7 @@ Test from a clean directory using the published package, not the local package p
 tmpdir="$(mktemp -d)"
 cd "$tmpdir"
 npm init -y
-npm install agent-md
+npm install @abuswami1996/agent-md
 npx agent-md init --agent cursor
 npx agent-md validate
 npx agent-md serve --no-open
@@ -502,7 +502,7 @@ If a release is bad:
 2. Optionally deprecate the bad version.
 
 ```bash
-npm deprecate agent-md@0.1.0 "This release has a packaging issue. Please upgrade to 0.1.1."
+npm deprecate @abuswami1996/agent-md@0.1.0 "This release has a packaging issue. Please upgrade to 0.1.1."
 ```
 
 Avoid unpublishing unless the release contains secrets or legal issues. Unpublishing can break users.
@@ -534,23 +534,23 @@ npm run build
 npm run package -w agent-md-preview
 
 # 3. Rebuild CLI so the latest VSIX is bundled
-npm run build -w agent-md
+npm run build -w @abuswami1996/agent-md
 
 # 4. Inspect artifacts
-npm pack --dry-run -w agent-md
+npm pack --dry-run -w @abuswami1996/agent-md
 npm run ls:vsix -w agent-md-preview
 
 # 5. Publish extension
 npm run publish:marketplace -w agent-md-preview
 
 # 6. Publish npm package
-npm publish -w agent-md --access public
+npm publish -w @abuswami1996/agent-md --access public
 
 # 7. Smoke test published package
 tmpdir="$(mktemp -d)"
 cd "$tmpdir"
 npm init -y
-npm install agent-md
+npm install @abuswami1996/agent-md
 npx agent-md init --agent cursor
 npx agent-md validate
 ```
