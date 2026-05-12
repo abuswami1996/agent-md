@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- Added GitHub Actions release workflow support for Marketplace and Open VSX publishing.
+- Added release safety checks for VSIX package contents and changelog/version alignment.
+
 ## 0.1.3
 
 - Bumped the extension package for republishing after Marketplace/Open VSX documentation and metadata updates.
