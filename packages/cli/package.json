@@ -1,6 +1,6 @@
 {
   "name": "@abuswami1996/agent-md",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first Agent Markdown runtime, validator, browser viewer, and agent skill installer.",
   "license": "MIT",
   "author": "Abhinav Swaminathan",
@@ -22,12 +22,29 @@
     "cursor"
   ],
   "type": "module",
-  "engines": { "node": ">=20" },
-  "bin": { "agent-md": "dist/index.js" },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "agent-md": "dist/index.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "viewer-dist", "agent-md-preview.vsix", "README.md", "LICENSE", "CHANGELOG.md", "package.json"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "viewer-dist",
+    "agent-md-preview.vsix",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "package.json"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --external commander --external picocolors --external fast-glob --external chokidar --external ws --external yaml --external papaparse --external zod && tsc src/index.ts --ignoreConfig --emitDeclarationOnly --declaration --outDir dist --module ESNext --moduleResolution Bundler --target ES2022 --skipLibCheck --strict && rm -rf viewer-dist && cp -R ../viewer/dist viewer-dist && if [ -f ../vscode-extension/dist/agent-md-preview.vsix ]; then cp ../vscode-extension/dist/agent-md-preview.vsix agent-md-preview.vsix; fi",
     "prepack": "node -e \"const fs=require('fs'); for (const p of ['dist/index.js','dist/index.d.ts','viewer-dist/index.html','agent-md-preview.vsix','README.md','LICENSE','CHANGELOG.md']) if (!fs.existsSync(p)) { console.error('Missing publish artifact: '+p); process.exit(1); }\""
