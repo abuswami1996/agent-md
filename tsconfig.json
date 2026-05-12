@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "declaration": true,
+    "sourceMap": true,
+    "paths": {
+      "@agent-md/schema": ["./packages/schema/src/index.ts"],
+      "@agent-md/parser": ["./packages/parser/src/index.ts"],
+      "@agent-md/resolver": ["./packages/resolver/src/index.ts"],
+      "@agent-md/renderer-react": ["./packages/renderer-react/src/index.tsx"],
+      "@agent-md/skill": ["./packages/skill/src/index.ts"]
+    }
+  },
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "tests/**/*.ts"]
+}

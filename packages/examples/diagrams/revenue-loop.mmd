@@ -1,0 +1,5 @@
+flowchart LR
+  Agent[Agent authors dashboard] --> Validate[agent-md validate]
+  Validate --> Viewer[Local viewer]
+  Viewer --> Feedback[User feedback]
+  Feedback --> Agent

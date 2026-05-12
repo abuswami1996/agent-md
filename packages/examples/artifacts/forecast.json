@@ -1,0 +1,6 @@
+{
+  "baseCase": 1760000,
+  "upsideCase": 2140000,
+  "riskAdjusted": 1610000,
+  "assumptions": ["Expansion motion continues", "No remote data fetching", "Local-only demo artifact"]
+}

@@ -1,0 +1,57 @@
+{
+  "name": "agent-md-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "bin": {
+    "agent-md": "packages/cli/dist/index.js"
+  },
+  "scripts": {
+    "build": "npm run build -w @agent-md/schema && npm run build -w @agent-md/parser && npm run build -w @agent-md/resolver && npm run build -w @agent-md/skill && npm run build -w @agent-md/renderer-react && npm run build -w @agent-md/viewer && npm run build -w agent-md-preview && npm run build -w agent-md",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "agent-md": "tsx packages/cli/src/index.ts"
+  },
+  "dependencies": {
+    "@types/node": "^25.7.0",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "chokidar": "^5.0.0",
+    "commander": "^14.0.3",
+    "eslint": "^10.3.0",
+    "fast-glob": "^3.3.3",
+    "lucide-react": "^1.14.0",
+    "mermaid": "^11.15.0",
+    "papaparse": "^5.5.3",
+    "picocolors": "^1.1.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6",
+    "ws": "^8.20.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "description": "Agent Markdown is a local-first Markdown format for building interactive, data-rich documents without asking agents to emit full HTML, custom JavaScript, or bulky application code.",
+  "main": "eslint.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

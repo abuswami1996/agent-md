@@ -1,0 +1,74 @@
+{
+  "name": "agent-md-preview",
+  "displayName": "Agent Markdown Preview",
+  "description": "Preview local-first Agent Markdown documents in VSCode and Cursor.",
+  "version": "0.1.0",
+  "publisher": "AbhinavSwaminathan",
+  "license": "MIT",
+  "author": "Abhinav Swaminathan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agent-md/agent-md.git",
+    "directory": "packages/vscode-extension"
+  },
+  "homepage": "https://github.com/agent-md/agent-md#readme",
+  "bugs": {
+    "url": "https://github.com/agent-md/agent-md/issues"
+  },
+  "keywords": [
+    "agent-markdown",
+    "markdown-preview",
+    "dashboard",
+    "data-visualization",
+    "local-first",
+    "cursor"
+  ],
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
+  "type": "commonjs",
+  "engines": { "vscode": "^1.92.0" },
+  "categories": ["Visualization", "Other"],
+  "activationEvents": [
+    "workspaceContains:**/*.agent.md",
+    "workspaceContains:**/*.amd.md"
+  ],
+  "main": "dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "agentMd.openPreview", "title": "Agent Markdown: Open Preview" }
+    ],
+    "keybindings": [
+      {
+        "command": "agentMd.openPreview",
+        "key": "ctrl+shift+v",
+        "mac": "shift+cmd+v",
+        "when": "editorTextFocus && resourceFilename =~ /\\.(agent|amd)\\.md$/"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "agentMd.openPreview",
+          "when": "resourceFilename =~ /\\.(agent|amd)\\.md$/",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        { "command": "agentMd.openPreview" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'); for (const p of ['dist/extension.js','dist/extension.cjs']) fs.rmSync(p,{force:true});\" && tsup src/extension.ts --format cjs --external vscode && vite build --config vite.config.ts",
+    "package": "npm run build && node scripts/package-vsix.mjs",
+    "publish:marketplace": "npm run build && node scripts/remove-local-vsix.mjs && vsce publish --no-dependencies",
+    "ls:vsix": "node scripts/list-vsix.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.6.2"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@agent-md/renderer-react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "scripts": { "build": "tsup src/index.tsx --format esm --external react --external react-markdown --external recharts --external mermaid --external @agent-md/schema && tsc src/index.tsx --ignoreConfig --emitDeclarationOnly --declaration --outDir dist --module ESNext --moduleResolution Bundler --target ES2022 --jsx react-jsx --skipLibCheck --strict --esModuleInterop" },
+  "peerDependencies": { "react": ">=18" },
+  "dependencies": { "mermaid": "^11.12.1" }
+}
