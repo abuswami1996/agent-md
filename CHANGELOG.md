@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Added GitHub Actions CI for pull request and `main` branch verification.
+- Added a manual release workflow for npm, VSCode Marketplace, Open VSX, and GitHub Releases.
+- Added release safety checks for changelogs, artifacts, package contents, and published npm versions.
+
 ## 0.1.2
 
 - Corrected agent skill installation paths for Cursor, Claude Code, Codex, and OpenCode.
