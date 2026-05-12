@@ -10,11 +10,12 @@
     "agent-md": "packages/cli/dist/index.js"
   },
   "scripts": {
+    "build:test-deps": "npm run build -w @agent-md/schema && npm run build -w @agent-md/parser && npm run build -w @agent-md/resolver && npm run build -w @agent-md/skill",
     "build": "npm run build -w @agent-md/schema && npm run build -w @agent-md/parser && npm run build -w @agent-md/resolver && npm run build -w @agent-md/skill && npm run build -w @agent-md/renderer-react && npm run build -w @agent-md/viewer && npm run build -w agent-md-preview && npm run build -w @abuswami1996/agent-md",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "verify": "npm test && npm run lint && npm run typecheck && npm run build",
+    "verify": "npm run build:test-deps && npm test && npm run lint && npm run typecheck && npm run build",
     "release:check": "node scripts/check-release.mjs",
     "package:all": "npm run package -w agent-md-preview && npm run build -w @abuswami1996/agent-md && npm pack --dry-run -w @abuswami1996/agent-md && npm run ls:vsix -w agent-md-preview",
     "agent-md": "tsx packages/cli/src/index.ts"
