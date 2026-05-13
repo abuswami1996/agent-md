@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- Added `agent-md convert --file_name <file.agent.md> --html` for static HTML document generation.
+- Added single-document static viewer rendering with embedded resolved document payloads.
+- Updated generated Agent Markdown skill guidance and README usage for static HTML conversion.
+
 ## 0.1.5
 
 - Added rich local `::embed` previews for Markdown, text, CSV, Mermaid, JSON, images, and videos in the browser viewer.

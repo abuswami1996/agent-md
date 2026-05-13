@@ -7,8 +7,21 @@ import "./style.css";
 
 type FileItem = { path: string; diagnostics: Diagnostic[] };
 type FileGroup = { folder: string; files: FileItem[] };
+type StaticPayload = { document: AgentMarkdownDocument; source?: string };
+
+declare global {
+  interface Window {
+    __AGENT_MD_STATIC__?: StaticPayload;
+  }
+}
 
 function App() {
+  const staticPayload = window.__AGENT_MD_STATIC__;
+  if (staticPayload) return <StaticApp payload={staticPayload} />;
+  return <ServerApp />;
+}
+
+function ServerApp() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selected, setSelected] = useState<string>();
   const [document, setDocument] = useState<AgentMarkdownDocument>();
@@ -28,6 +41,12 @@ function App() {
     setSource(await fetch(`/api/source?file=${encodeURIComponent(file)}`).then((res) => res.json()).then((data) => data.source));
   }
   return <div className="app-frame"><div className="browser-shell"><aside className="file-sidebar" aria-label="Project files"><div className="sidebar-strip">Files ({files.length})</div><div className="file-tree">{groups.map((group) => <section className="folder-group" key={group.folder}><div className="folder-row"><FolderOpen aria-hidden className="tree-icon folder-icon" /><div><div className="folder-name">{group.folder}</div><div className="folder-count">{group.files.length} files</div></div></div><ul>{group.files.map((file) => <li key={file.path}><button type="button" title={file.path} className={file.path === selected ? "file-row active" : "file-row"} onClick={() => loadDocument(file.path)}><FileIcon path={file.path} /><span>{file.path.split("/").slice(1).join("/") || file.path}</span><Status diagnostics={file.diagnostics} /></button></li>)}</ul></section>)}</div></aside><main className="preview-pane"><div className="preview-header"><div><h3>{selected ?? "Select a file"}</h3>{document ? <p>{document.nodes.length} nodes · {document.diagnostics.length} diagnostics</p> : <p>Agent Markdown preview</p>}</div><button className="mode-button" type="button" onClick={() => setMode(mode === "rendered" ? "source" : "rendered")}>{mode === "rendered" ? "Source" : "Rendered"}</button></div><div className="preview-body">{mode === "source" ? <pre>{source}</pre> : document ? <AgentMarkdownRenderer document={document} /> : <p className="empty-state">Choose a file from the tree.</p>}</div>{document?.diagnostics.length ? <div className="diagnostics-panel" aria-label="Diagnostics">{document.diagnostics.map((diagnostic, index) => <p key={index} className={diagnostic.severity}>{diagnostic.severity}: {diagnostic.message}</p>)}</div> : null}</main></div></div>;
+}
+
+function StaticApp({ payload }: { payload: StaticPayload }) {
+  const [mode, setMode] = useState<"rendered" | "source">("rendered");
+  const { document, source } = payload;
+  return <div className="app-frame"><div className="browser-shell static-shell"><main className="preview-pane"><div className="preview-header"><div><h3>{document.sourcePath}</h3><p>{document.nodes.length} nodes · {document.diagnostics.length} diagnostics</p></div>{source != null ? <button className="mode-button" type="button" onClick={() => setMode(mode === "rendered" ? "source" : "rendered")}>{mode === "rendered" ? "Source" : "Rendered"}</button> : null}</div><div className="preview-body">{mode === "source" ? <pre>{source}</pre> : <AgentMarkdownRenderer document={document} />}</div>{document.diagnostics.length ? <div className="diagnostics-panel" aria-label="Diagnostics">{document.diagnostics.map((diagnostic, index) => <p key={index} className={diagnostic.severity}>{diagnostic.severity}: {diagnostic.message}</p>)}</div> : null}</main></div></div>;
 }
 
 function groupFiles(files: FileItem[]): FileGroup[] {

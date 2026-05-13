@@ -2,6 +2,7 @@
 body{margin:0}
 .app-frame{min-height:100vh;padding:16px;background:var(--background)}
 .browser-shell{display:flex;min-height:min(75vh,680px);overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--card)}
+.browser-shell.static-shell{min-height:auto}
 .file-sidebar{width:100%;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);background:var(--card)}
 .sidebar-strip{padding:9px 12px;background:color-mix(in srgb,var(--muted) 40%,transparent);border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);font-size:12px;font-weight:500;color:var(--muted-foreground)}
 .file-tree{max-height:min(40vh,320px);overflow:auto;overscroll-behavior:contain}

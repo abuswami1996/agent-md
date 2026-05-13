@@ -191,6 +191,24 @@ Print JSON diagnostics:
 npx agent-md validate --json
 ```
 
+### Convert Documents
+
+Create a static HTML file from an Agent Markdown document when you want to share a rendered report without running the local viewer server:
+
+```bash
+npx agent-md convert --file_name examples/example.agent.md --html
+```
+
+By default, the output is written next to the source file with a `.html` extension, so `examples/example.agent.md` becomes `examples/example.html`.
+
+Write to a specific path:
+
+```bash
+npx agent-md convert --file_name examples/example.agent.md --html --output dist/report.html
+```
+
+The generated HTML embeds the resolved document data and a self-contained viewer bundle for offline viewing. Referenced local artifacts are linked or shown with a fallback unless their content is already represented in the resolved document payload. Run `npx agent-md validate --file examples/example.agent.md` before conversion if you want to catch diagnostics before writing the HTML file.
+
 ### Run the Browser Viewer
 
 ```bash
