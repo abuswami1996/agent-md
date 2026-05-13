@@ -117,6 +117,34 @@ program.command("export")
     else console.log(renderStaticHtml(document));
   });
 
+program.command("convert")
+  .description("Convert an Agent Markdown document to another format")
+  .option("--file_name <file>", "Agent Markdown file to convert")
+  .option("--file-name <file>", "Agent Markdown file to convert")
+  .option("--html", "write a static HTML file")
+  .option("--output <file>", "output file path")
+  .option("--root <root>", "project root", ".")
+  .option("--config <config>", "config path", "agent-md.config.json")
+  .action(async (options, command) => {
+    const root = path.resolve(options.root);
+    const file = options.file_name ?? options.fileName;
+    if (!file) command.error("error: required option '--file_name <file>' not specified");
+    if (!options.html) command.error("error: convert currently requires '--html'");
+    if (path.extname(file) !== ".md" || !file.endsWith(".agent.md")) command.error("error: --file_name must point to a .agent.md file");
+
+    const config = await loadConfig(root, options.config);
+    const inputFile = path.resolve(root, file);
+    const document = await parseAndResolve(inputFile, root, config);
+    const source = await fs.readFile(document.sourcePath, "utf8");
+    const outputFile = path.resolve(root, options.output ?? defaultHtmlOutputPath(file));
+    const html = await buildStaticHtml(document, source);
+    await fs.mkdir(path.dirname(outputFile), { recursive: true });
+    await fs.writeFile(outputFile, html);
+    console.log(pc.green(`Wrote ${path.relative(root, outputFile)}`));
+    printDiagnostics([document]);
+    process.exitCode = document.diagnostics.some((diagnostic) => diagnostic.severity === "error") ? 1 : 0;
+  });
+
 program.command("vscode-extension")
   .description("Print or run local VSCode/Cursor extension install instructions")
   .option("--editor <editor>", "editor CLI to use: cursor or code", "cursor")
@@ -365,6 +393,67 @@ async function findViewerDistDir() {
   return undefined;
 }
 
+function defaultHtmlOutputPath(file: string) {
+  if (file.endsWith(".agent.md")) return `${file.slice(0, -".agent.md".length)}.html`;
+  return `${file.slice(0, -path.extname(file).length)}.html`;
+}
+
+async function buildStaticHtml(document: AgentMarkdownDocument, source: string) {
+  const viewerDistDir = await findViewerDistDir();
+  const payload = { document, source };
+  if (!viewerDistDir) return renderStaticHtml(document, source);
+
+  const indexPath = path.join(viewerDistDir, "index.html");
+  let html = await fs.readFile(indexPath, "utf8");
+  html = await inlineCssAssets(html, viewerDistDir);
+  html = await inlineScriptAssets(html, viewerDistDir);
+  return html.replace("</head>", `${staticPayloadScript(payload)}</head>`);
+}
+
+async function inlineCssAssets(html: string, viewerDistDir: string) {
+  const cssLinkPattern = /<link\b([^>]*?)href="([^"]+\.css)"([^>]*)>/g;
+  return replaceAsync(html, cssLinkPattern, async (_match, before: string, href: string, after: string) => {
+    const css = await readViewerAsset(viewerDistDir, href);
+    return `<style data-agent-md-asset="${escapeHtmlAttribute(href)}"${before.includes("media=") || after.includes("media=") ? `${before}${after}`.match(/\smedia="[^"]+"/)?.[0] ?? "" : ""}>\n${css}\n</style>`;
+  });
+}
+
+async function inlineScriptAssets(html: string, viewerDistDir: string) {
+  const scriptPattern = /<script\b([^>]*?)src="([^"]+\.js)"([^>]*)><\/script>/g;
+  return replaceAsync(html, scriptPattern, async (_match, before: string, src: string, after: string) => {
+    const js = (await readViewerAsset(viewerDistDir, src)).replace(/<\/script/gi, "<\\/script");
+    const isModule = `${before}${after}`.includes("type=\"module\"");
+    return `<script${isModule ? " type=\"module\"" : ""} data-agent-md-asset="${escapeHtmlAttribute(src)}">\n${js}\n</script>`;
+  });
+}
+
+async function readViewerAsset(viewerDistDir: string, assetPath: string) {
+  const relative = decodeURIComponent(assetPath.replace(/^\/+/, ""));
+  const absolute = path.resolve(viewerDistDir, relative);
+  const insideViewer = !path.relative(viewerDistDir, absolute).startsWith("..") && !path.isAbsolute(path.relative(viewerDistDir, absolute));
+  if (!insideViewer) throw new Error(`Viewer asset escapes dist directory: ${assetPath}`);
+  return fs.readFile(absolute, "utf8");
+}
+
+async function replaceAsync(source: string, pattern: RegExp, replacer: (...args: string[]) => Promise<string>) {
+  const matches = [...source.matchAll(pattern)];
+  const replacements = await Promise.all(matches.map((match) => replacer(...match.map((value) => value ?? ""))));
+  let result = source;
+  for (let index = matches.length - 1; index >= 0; index--) {
+    const match = matches[index];
+    result = `${result.slice(0, match.index)}${replacements[index]}${result.slice((match.index ?? 0) + match[0].length)}`;
+  }
+  return result;
+}
+
+function staticPayloadScript(payload: { document: AgentMarkdownDocument; source: string }) {
+  return `<script>window.__AGENT_MD_STATIC__=${jsonForScript(payload)};</script>`;
+}
+
+function jsonForScript(value: unknown) {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
+
 function contentType(file: string) {
   const ext = path.extname(file);
   if (ext === ".html") return "text/html; charset=utf8";
@@ -387,10 +476,24 @@ function contentType(file: string) {
 function renderFallback(document: AgentMarkdownDocument) {
   return document.nodes.map((node) => node.type === "markdown" ? node.value : `[${node.type}]`).join("\n\n");
 }
-function renderStaticHtml(document: AgentMarkdownDocument) {
-  return `<!doctype html><meta charset="utf8"><title>Agent Markdown</title><pre>${escapeHtml(JSON.stringify(document, null, 2))}</pre>`;
+function renderStaticHtml(document: AgentMarkdownDocument, source?: string) {
+  return `<!doctype html>
+<html><head><meta charset="utf8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Markdown</title>
+${staticPayloadScript({ document, source: source ?? "" })}
+<style>:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0f172a;background:#f8fafc}body{margin:0;padding:24px}.agent-md-card{border:1px solid #e2e8f0;border-radius:10px;background:white;padding:16px;margin:12px 0}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f1f5f9}</style></head>
+<body><main><h1>Agent Markdown</h1>${document.nodes.map(renderStaticNode).join("\n")}</main></body></html>`;
 }
 function escapeHtml(value: string) { return value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]!)); }
+function escapeHtmlAttribute(value: string) { return escapeHtml(value); }
+function renderStaticNode(node: AgentMarkdownDocument["nodes"][number]): string {
+  if (node.type === "markdown") return `<section>${escapeHtml(node.value).replace(/\n/g, "<br>")}</section>`;
+  if (node.type === "metric") return `<section class="agent-md-card"><strong>${escapeHtml(node.label)}</strong><h2>${escapeHtml(String(node.value ?? ""))}</h2></section>`;
+  if (node.type === "table" || node.type === "query") return `<section class="agent-md-card"><strong>${escapeHtml(node.type)}</strong><pre>${escapeHtml(JSON.stringify(node, null, 2))}</pre></section>`;
+  if (node.type === "callout") return `<section class="agent-md-card"><strong>${escapeHtml(node.title ?? node.calloutType)}</strong><p>${escapeHtml(node.body ?? "")}</p></section>`;
+  if (node.type === "tabs") return `<section class="agent-md-card"><strong>Tabs</strong>${node.tabs.map((tab) => `<h3>${escapeHtml(tab.label)}</h3>${tab.children.map(renderStaticNode).join("")}`).join("")}</section>`;
+  if (node.type === "error") return `<section class="agent-md-card"><strong>${escapeHtml(node.message)}</strong></section>`;
+  return `<section class="agent-md-card"><strong>${escapeHtml(node.type)}</strong><pre>${escapeHtml(JSON.stringify(node, null, 2))}</pre></section>`;
+}
 async function openBrowser(url: string) { await import("node:child_process").then(({ execFile }) => execFile(process.platform === "darwin" ? "open" : "xdg-open", [url])); }
 
 function viewerHtml() {
