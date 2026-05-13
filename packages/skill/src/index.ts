@@ -22,6 +22,7 @@ Rules:
 - Prefer named data blocks or local files.
 - Add frontmatter with format: agent-md and version: 0.1.
 - Run agent-md validate before considering a document complete.
+- When the user wants a shareable rendered artifact, run agent-md convert --file_name <file.agent.md> --html after validation.
 
 Supporting files in this skill directory:
 - agent-md.config.json: default runtime configuration.
@@ -36,6 +37,11 @@ Supported MVP primitives:
 - ::callout for notes, warnings, decisions, risks, and tips.
 - ::tabs for grouped alternative views.
 - ::diagram, ::timeline, ::query, ::embed, ::form, ::map, and ::component are supported with conservative validation and graceful fallbacks.
+
+Useful commands:
+- agent-md validate --file <file.agent.md>
+- agent-md convert --file_name <file.agent.md> --html
+- agent-md convert --file_name <file.agent.md> --html --output <output.html>
 `;
 
 export const exampleAgentMarkdown = `---

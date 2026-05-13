@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- Added `agent-md convert --file_name <file.agent.md> --html` for writing static HTML files.
+- Embedded resolved Agent Markdown documents and self-contained viewer assets in generated HTML.
+- Added CLI integration coverage and README guidance for static HTML conversion.
+
 ## 0.1.5
 
 - Added controlled local artifact preview support to the bundled browser viewer.

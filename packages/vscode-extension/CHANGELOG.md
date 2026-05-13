@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Bumped the extension package for the 0.1.6 release alongside the CLI static HTML conversion update.
+
 ## 0.1.5
 
 - Added richer `::embed` cards with titles, captions, and safe artifact fallbacks.
