@@ -405,9 +405,14 @@ async function buildStaticHtml(document: AgentMarkdownDocument, source: string) 
 
   const indexPath = path.join(viewerDistDir, "index.html");
   let html = await fs.readFile(indexPath, "utf8");
+  html = stripModulePreloadLinks(html);
   html = await inlineCssAssets(html, viewerDistDir);
   html = await inlineScriptAssets(html, viewerDistDir);
   return html.replace("</head>", `${staticPayloadScript(payload)}</head>`);
+}
+
+function stripModulePreloadLinks(html: string) {
+  return html.replace(/<link\b[^>]*\brel="modulepreload"[^>]*>/g, "");
 }
 
 async function inlineCssAssets(html: string, viewerDistDir: string) {
@@ -421,9 +426,10 @@ async function inlineCssAssets(html: string, viewerDistDir: string) {
 async function inlineScriptAssets(html: string, viewerDistDir: string) {
   const scriptPattern = /<script\b([^>]*?)src="([^"]+\.js)"([^>]*)><\/script>/g;
   return replaceAsync(html, scriptPattern, async (_match, before: string, src: string, after: string) => {
-    const js = (await readViewerAsset(viewerDistDir, src)).replace(/<\/script/gi, "<\\/script");
+    const js = await readViewerAsset(viewerDistDir, src);
     const isModule = `${before}${after}`.includes("type=\"module\"");
-    return `<script${isModule ? " type=\"module\"" : ""} data-agent-md-asset="${escapeHtmlAttribute(src)}">\n${js}\n</script>`;
+    const dataUrl = `data:text/javascript;base64,${Buffer.from(js).toString("base64")}`;
+    return `<script${isModule ? " type=\"module\"" : ""} data-agent-md-asset="${escapeHtmlAttribute(src)}" src="${dataUrl}"></script>`;
   });
 }
 
