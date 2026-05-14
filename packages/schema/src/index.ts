@@ -10,8 +10,47 @@ export type Diagnostic = {
   line?: number;
   column?: number;
   blockType?: string;
+  field?: string;
   suggestion?: string;
+  example?: string;
 };
+
+export const diagnosticCodes = [
+  "artifact_file_error",
+  "chart_row_limit",
+  "column_not_found",
+  "column_not_numeric",
+  "custom_component_disabled",
+  "data_file_error",
+  "data_not_found",
+  "data_parse_error",
+  "default_type_mismatch",
+  "directive_yaml_error",
+  "duplicate_field",
+  "embed_size_limit",
+  "frontmatter_parse_error",
+  "html_embed_blocked",
+  "invalid_date",
+  "invalid_field",
+  "lat_not_numeric",
+  "lat_out_of_range",
+  "lon_not_numeric",
+  "lon_out_of_range",
+  "markdown_size",
+  "max_nesting_depth",
+  "remote_artifact_blocked",
+  "remote_data_blocked",
+  "script_blocked",
+  "select_options_required",
+  "tab_default_missing",
+  "tab_label_duplicate",
+  "tab_label_required",
+  "tabs_empty",
+  "table_paginated",
+  "unknown_field",
+  "unknown_primitive",
+  "unsupported_artifact"
+] as const;
 
 export type DataColumn = {
   name: string;
@@ -33,22 +72,22 @@ export type DataSource = {
 
 export type MarkdownNode = { type: "markdown"; value: string; line?: number };
 export type ErrorNode = { type: "error"; message: string; raw: string; line?: number };
-export type ChartNode = { type: "chart"; chartType: "line" | "bar" | "area" | "scatter" | "pie"; title?: string; description?: string; data: string; x?: string; y?: string | string[]; label?: string; value?: string; series?: string; xLabel?: string; yLabel?: string; height?: number; width?: number; stacked?: boolean; legend?: boolean; tooltip?: boolean };
-export type MetricNode = { type: "metric"; label: string; value?: string | number; delta?: string | number; trend?: "up" | "down" | "neutral"; description?: string; data?: string; field?: string; format?: string; aggregate?: "sum" | "avg" | "min" | "max" | "count" };
-export type TableNode = { type: "table"; title?: string; data: string; columns?: string[]; sortable?: boolean; filterable?: boolean; pagination?: boolean; pageSize?: number; search?: boolean };
-export type DiagramNode = { type: "diagram"; diagramType: "flowchart" | "sequence" | "tree"; title?: string; source?: string; src?: string; direction?: "TB" | "LR" | "BT" | "RL"; height?: number };
-export type MapNode = { type: "map"; title?: string; data: string; lat?: string; lon?: string; label?: string; value?: string; height?: number; zoom?: number; center?: [number, number] };
+export type ChartNode = { type: "chart"; chartType: "line" | "bar" | "area" | "scatter" | "pie"; title?: string; description?: string; data: string; x?: string; y?: string | string[]; label?: string; value?: string; series?: string; xLabel?: string; yLabel?: string; height?: number; width?: number; stacked?: boolean; legend?: boolean; tooltip?: boolean; line?: number };
+export type MetricNode = { type: "metric"; label: string; value?: string | number; delta?: string | number; trend?: "up" | "down" | "neutral"; description?: string; data?: string; field?: string; format?: string; aggregate?: "sum" | "avg" | "min" | "max" | "count"; line?: number };
+export type TableNode = { type: "table"; title?: string; data: string; columns?: string[]; sortable?: boolean; filterable?: boolean; pagination?: boolean; pageSize?: number; search?: boolean; line?: number };
+export type DiagramNode = { type: "diagram"; diagramType: "flowchart" | "sequence" | "tree"; title?: string; source?: string; src?: string; direction?: "TB" | "LR" | "BT" | "RL"; height?: number; line?: number };
+export type MapNode = { type: "map"; title?: string; data: string; lat?: string; lon?: string; label?: string; value?: string; height?: number; zoom?: number; center?: [number, number]; line?: number };
 export type TimelineEvent = { date: string; title: string; description?: string; group?: string };
-export type TimelineNode = { type: "timeline"; data?: string; date?: string; title?: string; description?: string; group?: string; sort?: "asc" | "desc"; layout?: "vertical" | "horizontal"; events?: TimelineEvent[] };
+export type TimelineNode = { type: "timeline"; data?: string; date?: string; title?: string; description?: string; group?: string; sort?: "asc" | "desc"; layout?: "vertical" | "horizontal"; events?: TimelineEvent[]; line?: number };
 export type TabNode = { label: string; value?: string; children: DocumentNode[] };
-export type TabsNode = { type: "tabs"; default?: string; variant?: "line" | "pill" | "card"; tabs: TabNode[] };
-export type CalloutNode = { type: "callout"; calloutType: "note" | "info" | "warning" | "error" | "success" | "decision" | "risk" | "tip"; title?: string; body?: string; children?: DocumentNode[] };
-export type EmbedNode = { type: "embed"; src: string; title?: string; height?: number; width?: number; caption?: string; mode?: "preview" | "link" | "inline" };
+export type TabsNode = { type: "tabs"; default?: string; variant?: "line" | "pill" | "card"; tabs: TabNode[]; line?: number };
+export type CalloutNode = { type: "callout"; calloutType: "note" | "info" | "warning" | "error" | "success" | "decision" | "risk" | "tip"; title?: string; body?: string; children?: DocumentNode[]; line?: number };
+export type EmbedNode = { type: "embed"; src: string; title?: string; height?: number; width?: number; caption?: string; mode?: "preview" | "link" | "inline"; line?: number };
 export type FormField = { name: string; label?: string; fieldType: "text" | "number" | "select" | "checkbox" | "date"; default?: unknown; placeholder?: string; required?: boolean; options?: string[]; min?: number; max?: number; step?: number };
-export type FormNode = { type: "form"; title?: string; description?: string; submitLabel?: string; fields: FormField[] };
+export type FormNode = { type: "form"; title?: string; description?: string; submitLabel?: string; fields: FormField[]; line?: number };
 export type QueryPredicate = string | number | boolean | { eq?: unknown; neq?: unknown; gt?: number; gte?: number; lt?: number; lte?: number; contains?: string; in?: unknown[] };
-export type QueryNode = { type: "query"; data: string; where?: Record<string, QueryPredicate>; select?: string[]; sort?: { by: string; direction?: "asc" | "desc" }; limit?: number; view?: "table" | "json" | "cards" };
-export type ComponentNode = { type: "component"; name: string; props?: Record<string, unknown> };
+export type QueryNode = { type: "query"; data: string; where?: Record<string, QueryPredicate>; select?: string[]; sort?: { by: string; direction?: "asc" | "desc" }; limit?: number; view?: "table" | "json" | "cards"; line?: number };
+export type ComponentNode = { type: "component"; name: string; props?: Record<string, unknown>; line?: number };
 export type DocumentNode = MarkdownNode | ChartNode | MetricNode | TableNode | DiagramNode | MapNode | TimelineNode | TabsNode | CalloutNode | EmbedNode | FormNode | QueryNode | ComponentNode | ErrorNode;
 export type AgentMarkdownDocument = { format: "agent-md"; version: string; sourcePath: string; frontmatter?: Record<string, unknown>; nodes: DocumentNode[]; dataSources: Record<string, DataSource>; diagnostics: Diagnostic[] };
 
@@ -96,7 +135,29 @@ export const primitiveNames = Object.keys(schemas) as PrimitiveName[];
 function issueToDiagnostic(issue: z.ZodIssue, sourcePath: string, blockType: string, line?: number): Diagnostic {
   const unknown = issue.code === "unrecognized_keys";
   const keys = unknown && "keys" in issue ? issue.keys.join(", ") : issue.path.join(".");
-  return { severity: unknown ? "warning" : "error", code: unknown ? "unknown_field" : "invalid_field", message: unknown ? `Unknown field "${keys}" on ::${blockType}.` : `${issue.path.join(".") || blockType}: ${issue.message}`, sourcePath, line, blockType };
+  const field = keys || undefined;
+  return {
+    severity: unknown ? "warning" : "error",
+    code: unknown ? "unknown_field" : "invalid_field",
+    message: unknown ? `Unknown field "${keys}" on ::${blockType}; it will be ignored.` : `Field "${keys || blockType}" is invalid on ::${blockType}: ${issue.message}`,
+    sourcePath,
+    line,
+    blockType,
+    field,
+    suggestion: unknown ? `Remove "${keys}" or replace it with a supported ::${blockType} field.` : `Update "${keys || blockType}" to match the ::${blockType} schema.`,
+    example: primitiveExample(blockType)
+  };
+}
+
+function primitiveExample(blockType: string) {
+  const examples: Record<string, string> = {
+    chart: "type: line\ndata: revenue\nx: month\ny: amount",
+    metric: "label: Revenue\ndata: revenue\nfield: amount\naggregate: sum",
+    table: "data: revenue\ncolumns: [month, amount]",
+    map: "data: locations\nlat: latitude\nlon: longitude",
+    embed: "src: ./artifact.md\nmode: preview"
+  };
+  return examples[blockType];
 }
 
 export function createDiagnostic(input: Omit<Diagnostic, "sourcePath"> & { sourcePath?: string }, sourcePath = ""): Diagnostic {
@@ -105,7 +166,7 @@ export function createDiagnostic(input: Omit<Diagnostic, "sourcePath"> & { sourc
 
 export function validatePrimitive(name: string, attrs: Record<string, unknown>, sourcePath: string, line?: number): { attrs?: Record<string, unknown>; diagnostics: Diagnostic[] } {
   if (!primitiveNames.includes(name as PrimitiveName)) {
-    return { diagnostics: [{ severity: "error", code: "unknown_primitive", message: `Unknown directive ::${name}.`, sourcePath, line, blockType: name }] };
+    return { diagnostics: [{ severity: "error", code: "unknown_primitive", message: `Unknown directive ::${name}.`, sourcePath, line, blockType: name, suggestion: "Use a supported Agent Markdown primitive or remove this directive.", example: `Supported primitives: ${primitiveNames.map((primitive) => `::${primitive}`).join(", ")}` }] };
   }
   const result = schemas[name as PrimitiveName].safeParse(attrs);
   if (result.success) return { attrs: result.data as Record<string, unknown>, diagnostics: [] };
@@ -118,31 +179,31 @@ export function normalizePrimitive(name: string, attrs: Record<string, unknown>,
   if (hasError || !validation.attrs) return { node: { type: "error", message: `Invalid ::${name} directive`, raw, line }, diagnostics: validation.diagnostics };
   const data = validation.attrs;
   switch (name) {
-    case "chart": return { node: { ...data, type: "chart", chartType: data.type } as ChartNode, diagnostics: validation.diagnostics };
-    case "metric": return { node: { ...data, type: "metric" } as MetricNode, diagnostics: validation.diagnostics };
-    case "table": return { node: { ...data, type: "table" } as TableNode, diagnostics: validation.diagnostics };
-    case "diagram": return { node: { ...data, type: "diagram", diagramType: data.type } as DiagramNode, diagnostics: validation.diagnostics };
-    case "map": return { node: { ...data, type: "map" } as MapNode, diagnostics: validation.diagnostics };
-    case "timeline": return { node: { ...data, type: "timeline" } as TimelineNode, diagnostics: validation.diagnostics };
+    case "chart": return { node: { ...data, type: "chart", chartType: data.type, line } as ChartNode, diagnostics: validation.diagnostics };
+    case "metric": return { node: { ...data, type: "metric", line } as MetricNode, diagnostics: validation.diagnostics };
+    case "table": return { node: { ...data, type: "table", line } as TableNode, diagnostics: validation.diagnostics };
+    case "diagram": return { node: { ...data, type: "diagram", diagramType: data.type, line } as DiagramNode, diagnostics: validation.diagnostics };
+    case "map": return { node: { ...data, type: "map", line } as MapNode, diagnostics: validation.diagnostics };
+    case "timeline": return { node: { ...data, type: "timeline", line } as TimelineNode, diagnostics: validation.diagnostics };
     case "tabs": {
       const tabs = children.filter((child): child is ComponentNode & { props?: { label?: string; value?: string; children?: DocumentNode[] } } => child.type === "component" && child.name === "__tab");
       const tabNodes = tabs.map((tab) => ({ label: String(tab.props?.label ?? ""), value: tab.props?.value ? String(tab.props.value) : undefined, children: Array.isArray(tab.props?.children) ? tab.props.children : [] }));
       const diagnostics = [...validation.diagnostics];
-      if (tabNodes.length === 0) diagnostics.push({ severity: "error", code: "tabs_empty", message: "::tabs requires at least one child ::tab.", sourcePath, line, blockType: "tabs" });
+      if (tabNodes.length === 0) diagnostics.push({ severity: "error", code: "tabs_empty", message: "::tabs requires at least one child ::tab.", sourcePath, line, blockType: "tabs", suggestion: "Add at least one nested ::tab block with a label.", example: ":::tabs\n::::tab\nlabel: Summary\nContent\n::::\n:::" });
       const labels = new Set<string>();
       for (const tab of tabNodes) {
-        if (!tab.label) diagnostics.push({ severity: "error", code: "tab_label_required", message: "Each ::tab requires a label.", sourcePath, line, blockType: "tabs" });
-        if (labels.has(tab.label)) diagnostics.push({ severity: "error", code: "tab_label_duplicate", message: `Duplicate tab label "${tab.label}".`, sourcePath, line, blockType: "tabs" });
+        if (!tab.label) diagnostics.push({ severity: "error", code: "tab_label_required", message: "Each ::tab requires a label.", sourcePath, line, blockType: "tabs", field: "label", suggestion: "Add a unique label to each child ::tab.", example: "label: Summary" });
+        if (labels.has(tab.label)) diagnostics.push({ severity: "error", code: "tab_label_duplicate", message: `Duplicate tab label "${tab.label}".`, sourcePath, line, blockType: "tabs", field: "label", suggestion: "Rename one of the duplicate tab labels so each label is unique.", example: "label: Details" });
         labels.add(tab.label);
       }
-      if (typeof data.default === "string" && !labels.has(data.default)) diagnostics.push({ severity: "error", code: "tab_default_missing", message: `Default tab "${data.default}" does not exist.`, sourcePath, line, blockType: "tabs" });
-      return { node: { type: "tabs", default: data.default as string | undefined, variant: data.variant as TabsNode["variant"], tabs: tabNodes }, diagnostics };
+      if (typeof data.default === "string" && !labels.has(data.default)) diagnostics.push({ severity: "error", code: "tab_default_missing", message: `Default tab "${data.default}" does not exist.`, sourcePath, line, blockType: "tabs", field: "default", suggestion: "Set default to one of the existing tab labels or remove the default field.", example: tabNodes[0]?.label ? `default: ${tabNodes[0].label}` : undefined });
+      return { node: { type: "tabs", default: data.default as string | undefined, variant: data.variant as TabsNode["variant"], tabs: tabNodes, line }, diagnostics };
     }
-    case "callout": return { node: { type: "callout", calloutType: (data.type ?? "note") as CalloutNode["calloutType"], title: data.title as string | undefined, body: data.body as string | undefined, children }, diagnostics: validation.diagnostics };
-    case "embed": return { node: { ...data, type: "embed" } as EmbedNode, diagnostics: validation.diagnostics };
-    case "form": return { node: { type: "form", title: data.title as string | undefined, description: data.description as string | undefined, submitLabel: data.submitLabel as string | undefined, fields: (data.fields as Array<Record<string, unknown>>).map((field) => ({ ...field, fieldType: field.type })) as FormField[] }, diagnostics: validation.diagnostics };
-    case "query": return { node: { ...data, type: "query" } as QueryNode, diagnostics: validation.diagnostics };
-    case "component": return { node: { ...data, type: "component" } as ComponentNode, diagnostics: validation.diagnostics };
+    case "callout": return { node: { type: "callout", calloutType: (data.type ?? "note") as CalloutNode["calloutType"], title: data.title as string | undefined, body: data.body as string | undefined, children, line }, diagnostics: validation.diagnostics };
+    case "embed": return { node: { ...data, type: "embed", line } as EmbedNode, diagnostics: validation.diagnostics };
+    case "form": return { node: { type: "form", title: data.title as string | undefined, description: data.description as string | undefined, submitLabel: data.submitLabel as string | undefined, fields: (data.fields as Array<Record<string, unknown>>).map((field) => ({ ...field, fieldType: field.type })) as FormField[], line }, diagnostics: validation.diagnostics };
+    case "query": return { node: { ...data, type: "query", line } as QueryNode, diagnostics: validation.diagnostics };
+    case "component": return { node: { ...data, type: "component", line } as ComponentNode, diagnostics: validation.diagnostics };
     default: return { node: { type: "error", message: `Unsupported directive ::${name}`, raw, line }, diagnostics: validation.diagnostics };
   }
 }

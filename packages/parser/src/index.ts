@@ -8,7 +8,7 @@ type Block = { name: string; marker: string; startLine: number; raw: string[]; c
 export function parseAgentMarkdown({ source, sourcePath }: ParseOptions): AgentMarkdownDocument {
   const diagnostics: Diagnostic[] = [];
   const { frontmatter, body } = extractFrontmatter(source, sourcePath, diagnostics);
-  if (/<script[\s>]/i.test(body)) diagnostics.push({ severity: "error", code: "script_blocked", message: "Scripts must never execute from Markdown content.", sourcePath });
+  if (/<script[\s>]/i.test(body)) diagnostics.push({ severity: "error", code: "script_blocked", message: "Scripts must never execute from Markdown content.", sourcePath, suggestion: "Remove the script tag and use Agent Markdown primitives for interactive content." });
   const { body: withoutData, dataSources } = extractDataBlocks(body, sourcePath, diagnostics);
   const nodes = parseDocumentBlocks(withoutData.split(/\r?\n/), sourcePath, diagnostics, 0, 1);
   return { format: "agent-md", version: String(frontmatter?.version ?? "0.1"), sourcePath, frontmatter, nodes, dataSources, diagnostics };
@@ -23,7 +23,7 @@ function extractFrontmatter(source: string, sourcePath: string, diagnostics: Dia
     const parsed = YAML.parse(raw) ?? {};
     return { frontmatter: typeof parsed === "object" ? parsed as Record<string, unknown> : {}, body: source.slice(end + 5).replace(/^\r?\n/, "") };
   } catch (error) {
-    diagnostics.push({ severity: "error", code: "frontmatter_parse_error", message: error instanceof Error ? error.message : "Invalid frontmatter", sourcePath, line: 1 });
+    diagnostics.push({ severity: "error", code: "frontmatter_parse_error", message: error instanceof Error ? error.message : "Invalid frontmatter", sourcePath, line: 1, suggestion: "Fix the YAML frontmatter or remove the frontmatter block.", example: "---\nformat: agent-md\nversion: 0.1\n---" });
     return { frontmatter: undefined, body: source.slice(end + 5).replace(/^\r?\n/, "") };
   }
 }
@@ -48,7 +48,7 @@ function extractDataBlocks(source: string, sourcePath: string, diagnostics: Diag
     try {
       dataSources[id] = parseInlineData(id, format as DataSource["format"], content.join("\n"));
     } catch (error) {
-      diagnostics.push({ severity: "error", code: "data_parse_error", message: error instanceof Error ? error.message : `Unable to parse data source ${id}`, sourcePath, line: startLine, blockType: "data" });
+      diagnostics.push({ severity: "error", code: "data_parse_error", message: error instanceof Error ? error.message : `Unable to parse data source ${id}`, sourcePath, line: startLine, blockType: "data", field: id, suggestion: `Fix the inline ${format} data block for "${id}" or replace it with a local data file reference.`, example: "```data revenue\nmonth,amount\nJan,10\n```" });
     }
   }
   return { body: kept.join("\n"), dataSources };
@@ -132,7 +132,7 @@ function parseDocumentBlocks(lines: string[], sourcePath: string, diagnostics: D
       block.content.push(current);
     }
     if (depth >= 5) {
-      diagnostics.push({ severity: "error", code: "max_nesting_depth", message: "Directive nesting depth exceeds 5.", sourcePath, line: block.startLine, blockType: name });
+      diagnostics.push({ severity: "error", code: "max_nesting_depth", message: "Directive nesting depth exceeds 5.", sourcePath, line: block.startLine, blockType: name, suggestion: "Flatten nested directives so no block is nested more than five levels deep." });
       nodes.push({ type: "error", message: "Directive nesting depth exceeds 5.", raw: block.raw.join("\n"), line: block.startLine });
       continue;
     }
@@ -181,7 +181,7 @@ function splitPropsAndBody(lines: string[], sourcePath: string, startLine: numbe
       const parsed = YAML.parse(yamlText);
       attrs = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
     } catch (error) {
-      diagnostics.push({ severity: "error", code: "directive_yaml_error", message: error instanceof Error ? error.message : "Invalid directive YAML", sourcePath, line: startLine });
+      diagnostics.push({ severity: "error", code: "directive_yaml_error", message: error instanceof Error ? error.message : "Invalid directive YAML", sourcePath, line: startLine, suggestion: "Fix the YAML fields at the top of this directive before the body content.", example: "title: Example\ndata: revenue" });
     }
   }
   return { attrs, body: lines.slice(splitAt).join("\n"), bodyOffset: splitAt + 1 };

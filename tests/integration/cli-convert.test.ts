@@ -44,4 +44,29 @@ describe("agent-md convert", () => {
       await fs.rm(temp, { recursive: true, force: true });
     }
   });
+
+  it("includes diagnostics in static HTML for invalid reports", async () => {
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "agent-md-convert-"));
+    try {
+      await fs.writeFile(path.join(temp, "broken.agent.md"), `::chart\ntype: line\ndata: revenue\nx: month\ny: missing_amount\n:::\n\n\`\`\`data revenue\nmonth,amount\nJan,10\n\`\`\`\n`);
+
+      await execConvertWithDiagnostics([cli, "convert", "--file_name", "broken.agent.md", "--html"], temp);
+      const html = await fs.readFile(path.join(temp, "broken.html"), "utf8");
+
+      expect(html).toContain("__AGENT_MD_STATIC__");
+      expect(html).toContain("column_not_found");
+      expect(html).toContain("missing_amount");
+      expect(html).toContain("Use one of the available columns");
+    } finally {
+      await fs.rm(temp, { recursive: true, force: true });
+    }
+  });
 });
+
+async function execConvertWithDiagnostics(args: string[], cwd: string) {
+  try {
+    return await execFileAsync(tsx, args, { cwd });
+  } catch (error) {
+    return error as { stdout: string; stderr: string };
+  }
+}
