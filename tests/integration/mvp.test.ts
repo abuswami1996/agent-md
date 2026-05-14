@@ -18,7 +18,19 @@ describe("Agent Markdown MVP", () => {
 
   it("validates unknown fields as warnings", () => {
     const document = parseAgentMarkdown({ source: `::chart\ntype: line\ndata: revenue\nx: month\ny: amount\nanimation: sparkle\n:::`, sourcePath });
-    expect(document.diagnostics.some((diagnostic) => diagnostic.code === "unknown_field" && diagnostic.severity === "warning")).toBe(true);
+    const diagnostic = document.diagnostics.find((item) => item.code === "unknown_field");
+    expect(diagnostic).toMatchObject({ severity: "warning", field: "animation", blockType: "chart" });
+    expect(diagnostic?.suggestion).toContain("Remove");
+  });
+
+  it("adds repair metadata for invalid directive fields and malformed YAML", () => {
+    const invalidField = parseAgentMarkdown({ source: `::metric\nlabel: Revenue\naggregate: total\n:::`, sourcePath });
+    expect(invalidField.diagnostics.find((diagnostic) => diagnostic.code === "invalid_field")).toMatchObject({ field: "aggregate", blockType: "metric", line: 1 });
+
+    const malformedYaml = parseAgentMarkdown({ source: `::chart\ntype: [line\n:::\n`, sourcePath });
+    const diagnostic = malformedYaml.diagnostics.find((item) => item.code === "directive_yaml_error");
+    expect(diagnostic?.suggestion).toContain("Fix the YAML fields");
+    expect(diagnostic?.example).toContain("data: revenue");
   });
 
   it("blocks path traversal", () => {
@@ -69,7 +81,34 @@ describe("Agent Markdown MVP", () => {
     const document = parseAgentMarkdown({ source, sourcePath: file });
     const resolved = await resolveDocumentData(document, root);
     expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toContain("script_blocked");
-    expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toContain("remote_data_blocked");
-    expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toContain("html_embed_blocked");
+    const remoteData = resolved.diagnostics.find((diagnostic) => diagnostic.code === "remote_data_blocked");
+    const htmlEmbed = resolved.diagnostics.find((diagnostic) => diagnostic.code === "html_embed_blocked");
+    expect(remoteData).toMatchObject({ field: "data", blockType: "chart", line: 3 });
+    expect(remoteData?.suggestion).toContain("local");
+    expect(htmlEmbed).toMatchObject({ field: "src", blockType: "embed", line: 10 });
+    expect(htmlEmbed?.message).toContain("safety");
+  });
+
+  it("reports missing columns with block context and suggested fixes", async () => {
+    const source = `::chart\ntype: line\ndata: revenue\nx: month\ny: missing_amount\n:::\n\n\`\`\`data revenue\nmonth,amount\nJan,10\n\`\`\``;
+    const document = parseAgentMarkdown({ source, sourcePath });
+    const resolved = await resolveDocumentData(document, root);
+    const diagnostic = resolved.diagnostics.find((item) => item.code === "column_not_found");
+
+    expect(diagnostic).toMatchObject({ blockType: "chart", field: "missing_amount", line: 1 });
+    expect(diagnostic?.message).toContain("missing_amount");
+    expect(diagnostic?.suggestion).toContain("amount");
+  });
+
+  it("adds actionable resolver suggestions for missing data and invalid map coordinates", async () => {
+    const missingData = parseAgentMarkdown({ source: `::table\ndata: sales\n:::`, sourcePath });
+    const missingResolved = await resolveDocumentData(missingData, root);
+    expect(missingResolved.diagnostics.find((diagnostic) => diagnostic.code === "data_not_found")).toMatchObject({ field: "data", suggestion: expect.stringContaining("inline data block") });
+
+    const mapSource = `::map\ndata: locations\nlat: latitude\nlon: longitude\n:::\n\n\`\`\`data locations\nname,latitude,longitude\nSF,120,-200\n\`\`\``;
+    const mapDocument = parseAgentMarkdown({ source: mapSource, sourcePath });
+    const mapResolved = await resolveDocumentData(mapDocument, root);
+    expect(mapResolved.diagnostics.find((diagnostic) => diagnostic.code === "lat_out_of_range")).toMatchObject({ field: "latitude", suggestion: expect.stringContaining("-90") });
+    expect(mapResolved.diagnostics.find((diagnostic) => diagnostic.code === "lon_out_of_range")).toMatchObject({ field: "longitude", suggestion: expect.stringContaining("-180") });
   });
 });

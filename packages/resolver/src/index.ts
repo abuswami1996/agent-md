@@ -101,16 +101,13 @@ export async function resolveDocumentData(document: AgentMarkdownDocument, proje
   const refs = [...new Set(document.nodes.flatMap(collectNodeDataRefs))];
   for (const ref of refs) {
     if (dataSources[ref]) continue;
-    if (isRemoteRef(ref)) {
-      diagnostics.push({ severity: "error", code: "remote_data_blocked", message: `Remote data reference is blocked: ${ref}`, sourcePath: document.sourcePath });
-      continue;
-    }
+    if (isRemoteRef(ref)) continue;
     if (dataExtensions.has(path.extname(ref).toLowerCase())) {
       try {
         const loaded = await loadDataFile(projectRoot, document.sourcePath, ref, config.limits);
         dataSources[ref] = loaded;
       } catch (error) {
-        diagnostics.push({ severity: "error", code: "data_file_error", message: error instanceof Error ? error.message : `Unable to load data source ${ref}`, sourcePath: document.sourcePath });
+        diagnostics.push({ severity: "error", code: "data_file_error", message: error instanceof Error ? error.message : `Unable to load data source ${ref}`, sourcePath: document.sourcePath, field: ref, suggestion: `Confirm "${ref}" exists inside the project and uses a supported data extension.`, example: "data: ./data/revenue.csv" });
       }
     }
   }
@@ -123,23 +120,30 @@ export function validateReferences(nodes: DocumentNode[], dataSources: Record<st
   const diagnostics: Diagnostic[] = [];
   const visit = (node: DocumentNode) => {
     const refs = collectNodeDataRefs(node);
-    for (const ref of refs) if (!dataSources[ref] && !dataExtensions.has(path.extname(ref).toLowerCase())) diagnostics.push({ severity: "error", code: "data_not_found", message: `Data source "${ref}" was not found.`, sourcePath, blockType: node.type });
+    for (const ref of refs) {
+      if (isRemoteRef(ref)) {
+        diagnostics.push({ severity: "error", code: "remote_data_blocked", message: `Remote data reference is blocked because remote data is disabled: ${ref}`, sourcePath, line: node.line, blockType: node.type, field: "data", suggestion: "Use a local inline data block or a local file path instead of an HTTP URL.", example: "data: ./data/revenue.csv" });
+      } else if (!dataSources[ref] && !dataExtensions.has(path.extname(ref).toLowerCase())) {
+        diagnostics.push({ severity: "error", code: "data_not_found", message: `Data source "${ref}" was not found.`, sourcePath, line: node.line, blockType: node.type, field: "data", suggestion: `Add an inline data block named "${ref}" or change the data field to an existing data source.`, example: `\`\`\`data ${ref}\nname,value\nExample,1\n\`\`\`` });
+      }
+    }
     const columnsByData = getReferencedColumns(node);
     for (const [data, columns] of Object.entries(columnsByData)) {
       const source = dataSources[data];
       if (!source?.columns || columns.length === 0) continue;
       const known = new Set(source.columns.map((column) => column.name));
-      for (const column of columns) if (!known.has(column)) diagnostics.push({ severity: "error", code: "column_not_found", message: `Column "${column}" was not found in data source "${data}".`, sourcePath, blockType: node.type });
+      const available = source.columns.map((column) => column.name).join(", ");
+      for (const column of columns) if (!known.has(column)) diagnostics.push({ severity: "error", code: "column_not_found", message: `Column "${column}" was not found in data source "${data}".`, sourcePath, line: node.line, blockType: node.type, field: column, suggestion: available ? `Use one of the available columns: ${available}.` : `Add "${column}" to data source "${data}" or update the directive field.`, example: columnExample(node, source.columns[0]?.name) });
     }
     if (node.type === "chart") {
       const rows = dataSources[node.data]?.rows?.length ?? 0;
-      if (rows > config.limits.maxChartRows) diagnostics.push({ severity: "warning", code: "chart_row_limit", message: `Chart uses ${rows} rows, above the ${config.limits.maxChartRows} row target.`, sourcePath, blockType: "chart" });
+      if (rows > config.limits.maxChartRows) diagnostics.push({ severity: "warning", code: "chart_row_limit", message: `Chart uses ${rows} rows, above the ${config.limits.maxChartRows} row target.`, sourcePath, line: node.line, blockType: "chart", suggestion: "Filter, aggregate, or sample the data before charting it." });
     }
     if (node.type === "table") {
       const rows = dataSources[node.data]?.rows?.length ?? 0;
-      if (rows > 500 && node.pagination !== false) diagnostics.push({ severity: "info", code: "table_paginated", message: "Tables over 500 rows are paginated by default.", sourcePath, blockType: "table" });
+      if (rows > 500 && node.pagination !== false) diagnostics.push({ severity: "info", code: "table_paginated", message: "Tables over 500 rows are paginated by default.", sourcePath, line: node.line, blockType: "table", suggestion: "Set pageSize or filter the data if the first page is too broad." });
     }
-    if (node.type === "component" && !config.security.allowCustomComponents) diagnostics.push({ severity: "warning", code: "custom_component_disabled", message: `Registered component "${node.name}" will render as a placeholder because custom components are disabled.`, sourcePath, blockType: "component" });
+    if (node.type === "component" && !config.security.allowCustomComponents) diagnostics.push({ severity: "warning", code: "custom_component_disabled", message: `Registered component "${node.name}" will render as a placeholder because custom components are disabled.`, sourcePath, line: node.line, blockType: "component", suggestion: "Enable custom components in config only for trusted projects, or replace this with a built-in primitive." });
     diagnostics.push(...validatePrimitiveSemantics(node, dataSources, sourcePath));
     if (node.type === "tabs") node.tabs.forEach((tab) => tab.children.forEach(visit));
     if (node.type === "callout") node.children?.forEach(visit);
@@ -151,8 +155,8 @@ export function validateReferences(nodes: DocumentNode[], dataSources: Record<st
 async function validateLocalArtifacts(nodes: DocumentNode[], projectRoot: string, sourcePath: string, config: AgentMarkdownConfig): Promise<Diagnostic[]> {
   const diagnostics: Diagnostic[] = [];
   const visit = async (node: DocumentNode): Promise<void> => {
-    if (node.type === "embed") await validateArtifactRef(node.src, "embed", projectRoot, sourcePath, config, diagnostics);
-    if (node.type === "diagram" && node.src) await validateArtifactRef(node.src, "diagram", projectRoot, sourcePath, config, diagnostics);
+    if (node.type === "embed") await validateArtifactRef(node.src, "embed", projectRoot, sourcePath, config, diagnostics, node.line);
+    if (node.type === "diagram" && node.src) await validateArtifactRef(node.src, "diagram", projectRoot, sourcePath, config, diagnostics, node.line);
     if (node.type === "tabs") for (const tab of node.tabs) for (const child of tab.children) await visit(child);
     if (node.type === "callout") for (const child of node.children ?? []) await visit(child);
   };
@@ -160,20 +164,20 @@ async function validateLocalArtifacts(nodes: DocumentNode[], projectRoot: string
   return diagnostics;
 }
 
-async function validateArtifactRef(ref: string, blockType: string, projectRoot: string, sourcePath: string, config: AgentMarkdownConfig, diagnostics: Diagnostic[]) {
+async function validateArtifactRef(ref: string, blockType: string, projectRoot: string, sourcePath: string, config: AgentMarkdownConfig, diagnostics: Diagnostic[], line?: number) {
   if (isRemoteRef(ref)) {
-    diagnostics.push({ severity: "error", code: "remote_artifact_blocked", message: `Remote artifact reference is blocked: ${ref}`, sourcePath, blockType });
+    diagnostics.push({ severity: "error", code: "remote_artifact_blocked", message: `Remote artifact reference is blocked because remote artifacts are not loaded inline: ${ref}`, sourcePath, line, blockType, field: "src", suggestion: "Download the artifact into the project and reference it with a local relative path.", example: "src: ./artifacts/summary.md" });
     return;
   }
   try {
     const absolute = await resolveSafeRealPath(projectRoot, sourcePath, ref);
     const ext = path.extname(absolute).toLowerCase();
-    if (!artifactExtensions.has(ext) && blockType === "embed") diagnostics.push({ severity: "error", code: "unsupported_artifact", message: `Unsupported artifact extension: ${ext}`, sourcePath, blockType });
-    if (ext === ".html" && !config.security.allowHtmlEmbeds) diagnostics.push({ severity: "error", code: "html_embed_blocked", message: "HTML embeds are blocked by default.", sourcePath, blockType });
+    if (!artifactExtensions.has(ext) && blockType === "embed") diagnostics.push({ severity: "error", code: "unsupported_artifact", message: `Unsupported artifact extension: ${ext}`, sourcePath, line, blockType, field: "src", suggestion: "Use a supported local artifact type or link to the file from regular Markdown." });
+    if (ext === ".html" && !config.security.allowHtmlEmbeds) diagnostics.push({ severity: "error", code: "html_embed_blocked", message: "HTML embeds are opened or blocked for safety rather than executed inline.", sourcePath, line, blockType, field: "src", suggestion: "Use mode: link for HTML artifacts, or convert the content to Markdown/data primitives.", example: "mode: link" });
     const stat = await fs.stat(absolute);
-    if (stat.size > config.limits.maxEmbedSizeMb * 1024 * 1024) diagnostics.push({ severity: "error", code: "embed_size_limit", message: `Artifact exceeds ${config.limits.maxEmbedSizeMb} MB limit.`, sourcePath, blockType });
+    if (stat.size > config.limits.maxEmbedSizeMb * 1024 * 1024) diagnostics.push({ severity: "error", code: "embed_size_limit", message: `Artifact exceeds ${config.limits.maxEmbedSizeMb} MB limit.`, sourcePath, line, blockType, field: "src", suggestion: "Reduce the artifact size or link to it instead of previewing it." });
   } catch (error) {
-    diagnostics.push({ severity: "error", code: "artifact_file_error", message: error instanceof Error ? error.message : `Unable to access artifact ${ref}`, sourcePath, blockType });
+    diagnostics.push({ severity: "error", code: "artifact_file_error", message: error instanceof Error ? error.message : `Unable to access artifact ${ref}`, sourcePath, line, blockType, field: "src", suggestion: `Confirm "${ref}" exists inside the project and does not escape the project root.` });
   }
 }
 
@@ -184,36 +188,46 @@ function validatePrimitiveSemantics(node: DocumentNode, dataSources: Record<stri
     const numericColumns = Array.isArray(node.y) ? node.y : node.y ? [node.y] : [];
     if (node.chartType === "pie" && node.value) numericColumns.push(node.value);
     for (const column of numericColumns) {
-      if (columnType(source, column) && columnType(source, column) !== "number") diagnostics.push({ severity: "error", code: "column_not_numeric", message: `Column "${column}" must be numeric for ::chart.`, sourcePath, blockType: "chart" });
+      if (columnType(source, column) && columnType(source, column) !== "number") diagnostics.push({ severity: "error", code: "column_not_numeric", message: `Column "${column}" must be numeric for ::chart.`, sourcePath, line: node.line, blockType: "chart", field: column, suggestion: `Use a numeric column for "${column}" or convert the data values to numbers.`, example: `${node.chartType === "pie" ? "value" : "y"}: amount` });
     }
   }
   if (node.type === "metric" && node.data && node.field && node.aggregate && node.aggregate !== "count") {
-    if (columnType(dataSources[node.data], node.field) && columnType(dataSources[node.data], node.field) !== "number") diagnostics.push({ severity: "error", code: "column_not_numeric", message: `Column "${node.field}" must be numeric for metric aggregation.`, sourcePath, blockType: "metric" });
+    if (columnType(dataSources[node.data], node.field) && columnType(dataSources[node.data], node.field) !== "number") diagnostics.push({ severity: "error", code: "column_not_numeric", message: `Column "${node.field}" must be numeric for metric aggregation.`, sourcePath, line: node.line, blockType: "metric", field: node.field, suggestion: "Use aggregate: count for non-numeric data, or point field at a numeric column.", example: "aggregate: count" });
   }
   if (node.type === "map") {
     const rows = dataSources[node.data]?.rows ?? [];
-    if (node.lat && columnType(dataSources[node.data], node.lat) !== "number") diagnostics.push({ severity: "error", code: "lat_not_numeric", message: `Latitude column "${node.lat}" must be numeric.`, sourcePath, blockType: "map" });
-    if (node.lon && columnType(dataSources[node.data], node.lon) !== "number") diagnostics.push({ severity: "error", code: "lon_not_numeric", message: `Longitude column "${node.lon}" must be numeric.`, sourcePath, blockType: "map" });
+    if (node.lat && columnType(dataSources[node.data], node.lat) && columnType(dataSources[node.data], node.lat) !== "number") diagnostics.push({ severity: "error", code: "lat_not_numeric", message: `Latitude column "${node.lat}" must be numeric.`, sourcePath, line: node.line, blockType: "map", field: node.lat, suggestion: "Use a latitude column with numeric decimal degree values.", example: "lat: latitude" });
+    if (node.lon && columnType(dataSources[node.data], node.lon) && columnType(dataSources[node.data], node.lon) !== "number") diagnostics.push({ severity: "error", code: "lon_not_numeric", message: `Longitude column "${node.lon}" must be numeric.`, sourcePath, line: node.line, blockType: "map", field: node.lon, suggestion: "Use a longitude column with numeric decimal degree values.", example: "lon: longitude" });
     for (const row of rows) {
       const lat = node.lat ? Number(row[node.lat]) : undefined;
       const lon = node.lon ? Number(row[node.lon]) : undefined;
-      if (lat != null && Number.isFinite(lat) && (lat < -90 || lat > 90)) diagnostics.push({ severity: "error", code: "lat_out_of_range", message: "Latitude values must be between -90 and 90.", sourcePath, blockType: "map" });
-      if (lon != null && Number.isFinite(lon) && (lon < -180 || lon > 180)) diagnostics.push({ severity: "error", code: "lon_out_of_range", message: "Longitude values must be between -180 and 180.", sourcePath, blockType: "map" });
+      if (lat != null && Number.isFinite(lat) && (lat < -90 || lat > 90)) diagnostics.push({ severity: "error", code: "lat_out_of_range", message: "Latitude values must be between -90 and 90.", sourcePath, line: node.line, blockType: "map", field: node.lat, suggestion: "Fix latitude values so every row is a decimal degree between -90 and 90.", example: "37.7749" });
+      if (lon != null && Number.isFinite(lon) && (lon < -180 || lon > 180)) diagnostics.push({ severity: "error", code: "lon_out_of_range", message: "Longitude values must be between -180 and 180.", sourcePath, line: node.line, blockType: "map", field: node.lon, suggestion: "Fix longitude values so every row is a decimal degree between -180 and 180.", example: "-122.4194" });
     }
   }
   if (node.type === "timeline") {
-    for (const event of node.events ?? []) if (Number.isNaN(Date.parse(event.date))) diagnostics.push({ severity: "error", code: "invalid_date", message: `Timeline event date "${event.date}" is invalid.`, sourcePath, blockType: "timeline" });
+    for (const event of node.events ?? []) if (Number.isNaN(Date.parse(event.date))) diagnostics.push({ severity: "error", code: "invalid_date", message: `Timeline event date "${event.date}" is invalid.`, sourcePath, line: node.line, blockType: "timeline", field: "date", suggestion: "Use ISO-style dates or another format JavaScript can parse reliably.", example: "date: 2026-05-13" });
   }
   if (node.type === "form") {
     const names = new Set<string>();
     for (const field of node.fields) {
-      if (names.has(field.name)) diagnostics.push({ severity: "error", code: "duplicate_field", message: `Duplicate form field "${field.name}".`, sourcePath, blockType: "form" });
+      if (names.has(field.name)) diagnostics.push({ severity: "error", code: "duplicate_field", message: `Duplicate form field "${field.name}".`, sourcePath, line: node.line, blockType: "form", field: field.name, suggestion: "Rename one of the duplicate form fields." });
       names.add(field.name);
-      if (field.fieldType === "select" && (!field.options || field.options.length === 0)) diagnostics.push({ severity: "error", code: "select_options_required", message: `Select field "${field.name}" requires options.`, sourcePath, blockType: "form" });
-      if (field.fieldType === "number" && field.default != null && typeof field.default !== "number") diagnostics.push({ severity: "error", code: "default_type_mismatch", message: `Default for "${field.name}" must be a number.`, sourcePath, blockType: "form" });
+      if (field.fieldType === "select" && (!field.options || field.options.length === 0)) diagnostics.push({ severity: "error", code: "select_options_required", message: `Select field "${field.name}" requires options.`, sourcePath, line: node.line, blockType: "form", field: field.name, suggestion: "Add at least one option to this select field.", example: "options: [A, B]" });
+      if (field.fieldType === "number" && field.default != null && typeof field.default !== "number") diagnostics.push({ severity: "error", code: "default_type_mismatch", message: `Default for "${field.name}" must be a number.`, sourcePath, line: node.line, blockType: "form", field: field.name, suggestion: "Use a numeric default value or remove the default.", example: "default: 10" });
     }
   }
   return diagnostics;
+}
+
+function columnExample(node: DocumentNode, fallbackColumn?: string) {
+  const column = fallbackColumn ?? "amount";
+  if (node.type === "chart") return `${node.chartType === "pie" ? "value" : "y"}: ${column}`;
+  if (node.type === "metric") return `field: ${column}`;
+  if (node.type === "table") return `columns: [${column}]`;
+  if (node.type === "map") return `lat: ${column}`;
+  if (node.type === "query") return `select: [${column}]`;
+  return undefined;
 }
 
 function columnType(source: DataSource | undefined, column: string) {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import mermaid from "mermaid";
-import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, DocumentNode, EmbedNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
+import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, Diagnostic, DocumentNode, EmbedNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
 
 export function AgentMarkdownRenderer({ document }: { document: AgentMarkdownDocument }) {
   return <div className="agent-md-document">{document.nodes.map((node, index) => <NodeRenderer key={index} node={node} document={document} />)}</div>;
@@ -10,7 +10,7 @@ export function AgentMarkdownRenderer({ document }: { document: AgentMarkdownDoc
 
 export function NodeRenderer({ node, document }: { node: DocumentNode; document: AgentMarkdownDocument }) {
   if (node.type === "markdown") return <ReactMarkdown>{node.value}</ReactMarkdown>;
-  if (node.type === "error") return <ErrorCard message={node.message} raw={node.raw} />;
+  if (node.type === "error") return <ErrorCard message={node.message} raw={node.raw} diagnostic={diagnosticForNode(document, node)} />;
   if (node.type === "metric") return <Metric node={node} dataSources={document.dataSources} />;
   if (node.type === "chart") return <Chart node={node} dataSources={document.dataSources} />;
   if (node.type === "table") return <DataTable node={node} dataSources={document.dataSources} />;
@@ -26,8 +26,9 @@ export function NodeRenderer({ node, document }: { node: DocumentNode; document:
   return null;
 }
 
-function ErrorCard({ message, raw }: { message: string; raw?: string }) {
-  return <div className="agent-md-card agent-md-error"><strong>{message}</strong>{raw ? <pre>{raw}</pre> : null}</div>;
+function ErrorCard({ message, raw, diagnostic, suggestion }: { message: string; raw?: string; diagnostic?: Diagnostic; suggestion?: string }) {
+  const nextAction = suggestion ?? diagnostic?.suggestion ?? "Check this block's fields and data references, then run agent-md validate again.";
+  return <div className="agent-md-card agent-md-error"><strong>{message}</strong><p>{nextAction}</p>{diagnostic?.line ? <small>Source line {diagnostic.line}</small> : null}{diagnostic?.field ? <small> Field: {diagnostic.field}</small> : null}{diagnostic?.example ? <pre>{diagnostic.example}</pre> : raw ? <pre>{raw}</pre> : null}</div>;
 }
 
 function Metric({ node, dataSources }: { node: MetricNode; dataSources: Record<string, DataSource> }) {
@@ -48,7 +49,7 @@ function Metric({ node, dataSources }: { node: MetricNode; dataSources: Record<s
 function Chart({ node, dataSources }: { node: ChartNode; dataSources: Record<string, DataSource> }) {
   const rows = dataSources[node.data]?.rows ?? [];
   const height = node.height ?? 320;
-  if (rows.length === 0) return <ErrorCard message={`No rows available for ${node.data}`} raw={`[Chart: ${node.chartType}]`} />;
+  if (rows.length === 0) return <ErrorCard message={`No rows available for ${node.data}`} raw={`[Chart: ${node.chartType}]`} suggestion="Confirm the chart's data source exists and contains rows before sharing this report." />;
   const common = { data: rows };
   return <div className="agent-md-card"><h3>{node.title ?? fallbackFor(node)}</h3>{node.description ? <p>{node.description}</p> : null}<ResponsiveContainer width="100%" height={height}>{renderChart(node, common)}</ResponsiveContainer></div>;
 }
@@ -119,7 +120,7 @@ function Diagram({ node, document }: { node: DiagramNode; document: AgentMarkdow
     render();
     return () => { cancelled = true; };
   }, [document.sourcePath, node]);
-  if (error) return <ErrorCard message={error} raw={node.source ?? node.src} />;
+  if (error) return <ErrorCard message={error} raw={node.source ?? node.src} suggestion="Fix the diagram source or open the report in the local viewer if it references a local file." />;
   return <div className="agent-md-card"><h3>{node.title ?? "Diagram"}</h3>{svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : <p>Rendering diagram...</p>}</div>;
 }
 
@@ -153,7 +154,7 @@ function TextEmbed({ node, url, kind }: { node: EmbedNode; url: string; kind: Ex
     });
     return () => { cancelled = true; };
   }, [kind, url]);
-  if (error) return <ErrorCard message={error} raw={node.src} />;
+  if (error) return <ErrorCard message={error} raw={node.src} suggestion="Open this report from the local viewer and confirm the artifact exists inside the project." />;
   if (text == null) return <p className="agent-md-embed-loading">Loading artifact...</p>;
   if (kind === "markdown" && (node.mode ?? "preview") === "preview") return <div className="agent-md-embed-markdown"><ReactMarkdown>{text}</ReactMarkdown></div>;
   return <pre className="agent-md-embed-text">{text}</pre>;
@@ -168,12 +169,12 @@ function EmbedFallback({ mode, hasUrl, kind }: { mode: EmbedNode["mode"]; hasUrl
 function MapView({ node, dataSources }: { node: MapNode; dataSources: Record<string, DataSource> }) {
   const source = dataSources[node.data];
   const height = node.height ?? 360;
-  if (!source) return <ErrorCard message={`No data available for ${node.data}`} raw={`[Map: ${node.title ?? node.data}]`} />;
+  if (!source) return <ErrorCard message={`No data available for ${node.data}`} raw={`[Map: ${node.title ?? node.data}]`} suggestion="Add the referenced map data source or update the map's data field." />;
   if (source.object && isGeoJson(source.object)) return <GeoJsonMap title={node.title} geojson={source.object} height={height} />;
   const rows = source.rows ?? [];
-  if (!node.lat || !node.lon || rows.length === 0) return <ErrorCard message="Map requires row data plus lat/lon fields." raw={node.title ?? node.data} />;
+  if (!node.lat || !node.lon || rows.length === 0) return <ErrorCard message="Map requires row data plus lat/lon fields." raw={node.title ?? node.data} suggestion="Provide lat and lon fields that point to numeric coordinate columns." />;
   const points = rows.map((row) => ({ row, lat: Number(row[node.lat!]), lon: Number(row[node.lon!]) })).filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon));
-  if (points.length === 0) return <ErrorCard message="Map has no valid numeric coordinates." raw={node.title ?? node.data} />;
+  if (points.length === 0) return <ErrorCard message="Map has no valid numeric coordinates." raw={node.title ?? node.data} suggestion="Fix the coordinate columns so at least one row has valid numeric latitude and longitude values." />;
   const lats = points.map((point) => point.lat);
   const lons = points.map((point) => point.lon);
   const bounds = padBounds({ minLat: Math.min(...lats), maxLat: Math.max(...lats), minLon: Math.min(...lons), maxLon: Math.max(...lons) });
@@ -182,7 +183,7 @@ function MapView({ node, dataSources }: { node: MapNode; dataSources: Record<str
 
 function GeoJsonMap({ title, geojson, height }: { title?: string; geojson: GeoJson; height: number }) {
   const coordinates = collectGeoCoordinates(geojson);
-  if (coordinates.length === 0) return <ErrorCard message="GeoJSON has no drawable coordinates." raw={title ?? "GeoJSON map"} />;
+  if (coordinates.length === 0) return <ErrorCard message="GeoJSON has no drawable coordinates." raw={title ?? "GeoJSON map"} suggestion="Check the GeoJSON geometry and use a FeatureCollection with drawable coordinates." />;
   const bounds = padBounds({ minLat: Math.min(...coordinates.map((coord) => coord[1])), maxLat: Math.max(...coordinates.map((coord) => coord[1])), minLon: Math.min(...coordinates.map((coord) => coord[0])), maxLon: Math.max(...coordinates.map((coord) => coord[0])) });
   return <div className="agent-md-card"><h3>{title ?? "GeoJSON map"}</h3><svg viewBox="0 0 1000 520" width="100%" height={height} role="img" aria-label={title ?? "GeoJSON map"}><rect x="0" y="0" width="1000" height="520" rx="18" fill="#f8fafc" stroke="#dbeafe" /><Grid />{geojson.features.map((feature, index) => <path key={index} d={featurePath(feature, bounds)} fill="#93c5fd" opacity="0.55" stroke="#1d4ed8" strokeWidth="3" />)}</svg></div>;
 }
@@ -197,6 +198,9 @@ function FormView({ node }: { node: Extract<DocumentNode, { type: "form" }> }) {
 
 function fallbackFor(node: ChartNode) { return `[Chart: ${node.chartType} chart of ${node.y ?? node.value ?? "value"} by ${node.x ?? node.label ?? "label"}]`; }
 function formatValue(value: unknown, format?: string) { return format === "currency" && typeof value === "number" ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value) : String(value); }
+function diagnosticForNode(document: AgentMarkdownDocument, node: DocumentNode) {
+  return document.diagnostics.find((diagnostic) => diagnostic.line === node.line && diagnostic.severity === "error") ?? document.diagnostics.find((diagnostic) => diagnostic.line === node.line);
+}
 function hasHttpArtifactEndpoint() {
   return typeof window !== "undefined" && window.location.protocol.startsWith("http");
 }

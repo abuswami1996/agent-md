@@ -53,17 +53,19 @@ program.command("init")
 program.command("validate")
   .option("--file <file>", "validate a single file")
   .option("--json", "print JSON diagnostics")
+  .option("--for-agent", "print compact deterministic JSON for repair agents")
   .option("--strict", "treat warnings as failures")
   .option("--root <root>", "project root", ".")
   .option("--config <config>", "config path", "agent-md.config.json")
-  .action(async (options) => {
+  .action(async (options, command) => {
+    if (options.forAgent && !options.json) command.error("error: --for-agent requires --json");
     const root = path.resolve(options.root);
     const config = await loadConfig(root, options.config);
     const files = options.file ? [path.resolve(root, options.file)] : await scanMarkdownFiles(root, config, false);
     const results = await Promise.all(files.map((file) => parseAndResolve(file, root, config)));
     const diagnostics = results.flatMap((result) => result.diagnostics);
     if (options.json) {
-      console.log(JSON.stringify({ files: results, diagnostics }, null, 2));
+      console.log(JSON.stringify(options.forAgent ? formatForAgent(results) : { files: results, diagnostics }, null, 2));
     } else {
       printDiagnostics(results);
     }
@@ -268,7 +270,7 @@ async function parseAndResolve(file: string, root: string, config: AgentMarkdown
   const safeFile = await resolveSafeRealPath(root, path.join(root, "agent-md.config.json"), file);
   const stat = await fs.stat(safeFile);
   const diagnostics: Diagnostic[] = [];
-  if (stat.size > config.limits.maxMarkdownSizeMb * 1024 * 1024) diagnostics.push({ severity: "warning", code: "markdown_size", message: `Markdown file exceeds ${config.limits.maxMarkdownSizeMb} MB target.`, sourcePath: safeFile });
+  if (stat.size > config.limits.maxMarkdownSizeMb * 1024 * 1024) diagnostics.push({ severity: "warning", code: "markdown_size", message: `Markdown file exceeds ${config.limits.maxMarkdownSizeMb} MB target.`, sourcePath: safeFile, suggestion: "Split the report or move large data into local data files." });
   const source = await fs.readFile(safeFile, "utf8");
   const parsed = parseAgentMarkdown({ source, sourcePath: safeFile });
   const resolved = await resolveDocumentData(parsed, root, config);
@@ -285,11 +287,59 @@ function printDiagnostics(results: AgentMarkdownDocument[]) {
     for (const diagnostic of result.diagnostics) {
       const color = diagnostic.severity === "error" ? pc.red : diagnostic.severity === "warning" ? pc.yellow : pc.blue;
       console.log(color(`  ${diagnostic.severity.toUpperCase()}: ${diagnostic.message}`));
+      console.log(`    Code: ${diagnostic.code}`);
       if (diagnostic.line) console.log(`    Line: ${diagnostic.line}`);
       if (diagnostic.blockType) console.log(`    Block: ::${diagnostic.blockType}`);
+      if (diagnostic.field) console.log(`    Field: ${diagnostic.field}`);
       if (diagnostic.suggestion) console.log(`    Suggestion: ${diagnostic.suggestion}`);
+      if (diagnostic.example) console.log(`    Example: ${diagnostic.example}`);
     }
   }
+}
+
+function formatForAgent(results: AgentMarkdownDocument[]) {
+  const files = results.map((result) => {
+    const diagnostics = sortDiagnostics(result.diagnostics).map(compactDiagnostic);
+    return {
+      sourcePath: result.sourcePath,
+      ok: !diagnostics.some((diagnostic) => diagnostic.severity === "error"),
+      diagnostics
+    };
+  }).sort((left, right) => left.sourcePath.localeCompare(right.sourcePath));
+  return {
+    version: 1,
+    ok: files.every((file) => file.ok),
+    files,
+    diagnostics: files.flatMap((file) => file.diagnostics)
+  };
+}
+
+function sortDiagnostics(diagnostics: Diagnostic[]) {
+  return [...diagnostics].sort((left, right) =>
+    left.sourcePath.localeCompare(right.sourcePath)
+    || (left.line ?? 0) - (right.line ?? 0)
+    || left.severity.localeCompare(right.severity)
+    || left.code.localeCompare(right.code)
+    || left.message.localeCompare(right.message)
+  );
+}
+
+function compactDiagnostic(diagnostic: Diagnostic) {
+  return omitUndefined({
+    severity: diagnostic.severity,
+    code: diagnostic.code,
+    message: diagnostic.message,
+    sourcePath: diagnostic.sourcePath,
+    line: diagnostic.line,
+    blockType: diagnostic.blockType,
+    field: diagnostic.field,
+    suggestion: diagnostic.suggestion,
+    example: diagnostic.example
+  });
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
 }
 
 async function resolveRequestedDocument(root: string, config: AgentMarkdownConfig, allMd: boolean, file: string) {
@@ -480,14 +530,15 @@ function contentType(file: string) {
 }
 
 function renderFallback(document: AgentMarkdownDocument) {
-  return document.nodes.map((node) => node.type === "markdown" ? node.value : `[${node.type}]`).join("\n\n");
+  const diagnostics = document.diagnostics.length ? `Diagnostics\n${document.diagnostics.map((diagnostic) => `- ${diagnostic.severity}: ${diagnostic.message}${diagnostic.suggestion ? ` Suggestion: ${diagnostic.suggestion}` : ""}`).join("\n")}\n\n` : "";
+  return diagnostics + document.nodes.map((node) => node.type === "markdown" ? node.value : `[${node.type}]`).join("\n\n");
 }
 function renderStaticHtml(document: AgentMarkdownDocument, source?: string) {
   return `<!doctype html>
 <html><head><meta charset="utf8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Markdown</title>
 ${staticPayloadScript({ document, source: source ?? "" })}
-<style>:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0f172a;background:#f8fafc}body{margin:0;padding:24px}.agent-md-card{border:1px solid #e2e8f0;border-radius:10px;background:white;padding:16px;margin:12px 0}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f1f5f9}</style></head>
-<body><main><h1>Agent Markdown</h1>${document.nodes.map(renderStaticNode).join("\n")}</main></body></html>`;
+<style>:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0f172a;background:#f8fafc}body{margin:0;padding:24px}.agent-md-card{border:1px solid #e2e8f0;border-radius:10px;background:white;padding:16px;margin:12px 0}.agent-md-error{border-color:#ef4444;background:#fef2f2}.diagnostics-panel{border:1px solid #cbd5e1;border-radius:12px;background:white;padding:16px;margin:18px 0}.diagnostic{border-left:4px solid #94a3b8;padding:10px 12px;margin:10px 0;background:#f8fafc}.diagnostic.error{border-color:#ef4444}.diagnostic.warning{border-color:#f59e0b}.diagnostic.info{border-color:#3b82f6}.meta{color:#475569;font-size:13px}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f1f5f9}</style></head>
+<body><main><h1>Agent Markdown</h1>${renderStaticDiagnostics(document.diagnostics)}${document.nodes.map(renderStaticNode).join("\n")}</main></body></html>`;
 }
 function escapeHtml(value: string) { return value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]!)); }
 function escapeHtmlAttribute(value: string) { return escapeHtml(value); }
@@ -497,8 +548,13 @@ function renderStaticNode(node: AgentMarkdownDocument["nodes"][number]): string 
   if (node.type === "table" || node.type === "query") return `<section class="agent-md-card"><strong>${escapeHtml(node.type)}</strong><pre>${escapeHtml(JSON.stringify(node, null, 2))}</pre></section>`;
   if (node.type === "callout") return `<section class="agent-md-card"><strong>${escapeHtml(node.title ?? node.calloutType)}</strong><p>${escapeHtml(node.body ?? "")}</p></section>`;
   if (node.type === "tabs") return `<section class="agent-md-card"><strong>Tabs</strong>${node.tabs.map((tab) => `<h3>${escapeHtml(tab.label)}</h3>${tab.children.map(renderStaticNode).join("")}`).join("")}</section>`;
-  if (node.type === "error") return `<section class="agent-md-card"><strong>${escapeHtml(node.message)}</strong></section>`;
+  if (node.type === "error") return `<section class="agent-md-card agent-md-error"><strong>${escapeHtml(node.message)}</strong><p>Check this block's fields and data references, then run agent-md validate again.</p></section>`;
   return `<section class="agent-md-card"><strong>${escapeHtml(node.type)}</strong><pre>${escapeHtml(JSON.stringify(node, null, 2))}</pre></section>`;
+}
+function renderStaticDiagnostics(diagnostics: Diagnostic[]) {
+  if (diagnostics.length === 0) return "";
+  const groups = ["error", "warning", "info"].map((severity) => [severity, diagnostics.filter((diagnostic) => diagnostic.severity === severity)] as const).filter(([, items]) => items.length > 0);
+  return `<section class="diagnostics-panel" aria-label="Diagnostics"><h2>Diagnostics</h2>${groups.map(([severity, items]) => `<h3>${escapeHtml(severity)} (${items.length})</h3>${items.map((diagnostic) => `<article class="diagnostic ${escapeHtml(diagnostic.severity)}"><strong>${escapeHtml(diagnostic.message)}</strong><p class="meta">${escapeHtml([diagnostic.code, diagnostic.line ? `line ${diagnostic.line}` : "", diagnostic.blockType ? `::${diagnostic.blockType}` : "", diagnostic.field ?? ""].filter(Boolean).join(" · "))}</p>${diagnostic.suggestion ? `<p>Suggestion: ${escapeHtml(diagnostic.suggestion)}</p>` : ""}${diagnostic.example ? `<pre>${escapeHtml(diagnostic.example)}</pre>` : ""}</article>`).join("")}`).join("")}</section>`;
 }
 async function openBrowser(url: string) { await import("node:child_process").then(({ execFile }) => execFile(process.platform === "darwin" ? "open" : "xdg-open", [url])); }
 
