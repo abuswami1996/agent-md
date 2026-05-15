@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Fixed repeated `Agent Markdown: Open Preview` command and shortcut invocations so they reveal the existing preview panel.
+- Added an editor context menu entry for Agent Markdown files and clarified that VSCode's built-in Markdown preview does not render rich Agent Markdown primitives.
+
 ## 0.2.1
 
 - Bumped the extension package for the 0.2.1 pie chart rendering bug fix in the shared renderer.

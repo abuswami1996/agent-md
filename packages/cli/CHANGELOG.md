@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Bundled the updated Agent Markdown Preview extension with reliable repeated shortcut reveal behavior and clearer preview entry points.
+
 ## 0.2.1
 
 - Fixed bundled viewer rendering for pie charts that use standard `x` and `y` fields instead of pie-specific `label` and `value` fields.

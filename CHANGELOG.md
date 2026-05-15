@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Fixed the VSCode/Cursor Agent Markdown preview so repeated shortcut invocations reveal the existing preview panel instead of updating it in the background.
+- Added an editor context menu entry and clarified that rich primitives render through `Agent Markdown: Open Preview`, not VSCode's built-in Markdown preview.
+
 ## 0.2.1
 
 - Fixed pie charts so `x`/`y` chart fields are used as the slice label and value keys when `label`/`value` are not provided.
