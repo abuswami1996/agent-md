@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showWarningMessage("Open an .agent.md or .amd.md file to preview Agent Markdown.");
       return;
     }
-    await openPreview(context, target);
+    await openPreview(context, target, { reveal: true });
   }));
 }
 
@@ -25,7 +25,7 @@ export function deactivate() {
   currentWatcher?.dispose();
 }
 
-async function openPreview(context: vscode.ExtensionContext, uri: vscode.Uri) {
+async function openPreview(context: vscode.ExtensionContext, uri: vscode.Uri, options: { reveal?: boolean } = {}) {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
   const projectRoot = workspaceFolder?.uri.fsPath ?? path.dirname(uri.fsPath);
   const config = await loadConfig(projectRoot);
@@ -34,24 +34,28 @@ async function openPreview(context: vscode.ExtensionContext, uri: vscode.Uri) {
   const resolved = await resolveDocumentData(parsed, projectRoot, config);
   const document = await inlineDiagramSources(resolved, projectRoot);
 
-  currentPanel ??= vscode.window.createWebviewPanel("agentMarkdownPreview", "Agent Markdown Preview", vscode.ViewColumn.Active, {
-    enableScripts: true,
-    retainContextWhenHidden: true,
-    localResourceRoots: [context.extensionUri]
-  });
+  if (currentPanel) {
+    if (options.reveal !== false) currentPanel.reveal(vscode.ViewColumn.Active);
+  } else {
+    currentPanel = vscode.window.createWebviewPanel("agentMarkdownPreview", "Agent Markdown Preview", vscode.ViewColumn.Active, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [context.extensionUri]
+    });
+    currentPanel.onDidDispose(() => {
+      currentPanel = undefined;
+      currentWatcher?.dispose();
+      currentWatcher = undefined;
+    });
+  }
 
   currentPanel.title = `Preview: ${path.basename(uri.fsPath)}`;
   currentPanel.webview.html = await webviewHtml(context, currentPanel.webview, document, source);
-  currentPanel.onDidDispose(() => {
-    currentPanel = undefined;
-    currentWatcher?.dispose();
-    currentWatcher = undefined;
-  });
 
   currentWatcher?.dispose();
   currentWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(projectRoot, "**/*.{agent.md,amd.md,csv,tsv,json,yaml,yml,geojson,mmd,md}"));
   const refresh = async () => {
-    if (currentPanel) await openPreview(context, uri);
+    if (currentPanel) await openPreview(context, uri, { reveal: false });
   };
   currentWatcher.onDidChange(refresh);
   currentWatcher.onDidCreate(refresh);

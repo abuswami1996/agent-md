@@ -18,6 +18,7 @@ AbhinavSwaminathan.agent-md-preview
 - `Agent Markdown: Open Preview` command.
 - `Cmd+Shift+V` on macOS for `.agent.md` and `.amd.md` files.
 - `Ctrl+Shift+V` on Windows and Linux for `.agent.md` and `.amd.md` files.
+- Editor title and editor context menu entries for Agent Markdown files.
 - Preview opens in the active editor group.
 - Uses the shared Agent Markdown parser, resolver, and React renderer.
 - Displays parser and resolver diagnostics inside the preview.
@@ -54,7 +55,9 @@ Open a `.agent.md` or `.amd.md` file, then run:
 Agent Markdown: Open Preview
 ```
 
-You can also use the preview keybinding while an Agent Markdown file is focused.
+You can also use the preview keybinding while an Agent Markdown file is focused, or right-click the editor and choose `Agent Markdown: Open Preview`.
+
+VSCode's built-in `Markdown: Open Preview` command is separate and does not render Agent Markdown primitives. Use `Agent Markdown: Open Preview` for charts, tables, metrics, maps, diagrams, tabs, callouts, queries, forms, and diagnostics.
 
 ## CLI Pairing
 
@@ -69,6 +72,6 @@ The CLI installs the project-local agent skill, schema, config, examples, and ed
 
 ## Known Limitations
 
-- This MVP does not replace VSCode's built-in Markdown preview provider.
+- This MVP does not replace VSCode's built-in Markdown preview provider; use `Agent Markdown: Open Preview` for rich primitive rendering.
 - Custom components render as placeholders unless explicitly enabled by future runtime support.
 - Diagram rendering uses Mermaid and is intentionally conservative.
