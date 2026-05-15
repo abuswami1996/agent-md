@@ -25,6 +25,8 @@ const vsixCandidates = [
   path.resolve(cliDir, "../agent-md-preview.vsix"),
   path.resolve(cliDir, "../../vscode-extension/dist/agent-md-preview.vsix")
 ];
+type StaticArtifact = { kind: "text"; mime: string; content: string } | { kind: "data"; mime: string; dataUrl: string };
+type StaticPayload = { document: AgentMarkdownDocument; source: string; artifacts?: Record<string, StaticArtifact>; sourcePathLabel?: string; title?: string };
 
 program.name("agent-md").description("Local-first Agent Markdown runtime").version(cliVersion);
 
@@ -139,7 +141,7 @@ program.command("convert")
     const document = await parseAndResolve(inputFile, root, config);
     const source = await fs.readFile(document.sourcePath, "utf8");
     const outputFile = path.resolve(root, options.output ?? defaultHtmlOutputPath(file));
-    const html = await buildStaticHtml(document, source);
+    const html = await buildStaticHtml(document, source, root, config);
     await fs.mkdir(path.dirname(outputFile), { recursive: true });
     await fs.writeFile(outputFile, html);
     console.log(pc.green(`Wrote ${path.relative(root, outputFile)}`));
@@ -448,10 +450,10 @@ function defaultHtmlOutputPath(file: string) {
   return `${file.slice(0, -path.extname(file).length)}.html`;
 }
 
-async function buildStaticHtml(document: AgentMarkdownDocument, source: string) {
+async function buildStaticHtml(document: AgentMarkdownDocument, source: string, root: string, config: AgentMarkdownConfig) {
   const viewerDistDir = await findViewerDistDir();
-  const payload = { document, source };
-  if (!viewerDistDir) return renderStaticHtml(document, source);
+  const payload = await buildStaticPayload(document, source, root, config);
+  if (!viewerDistDir) return renderStaticHtml(document, source, payload);
 
   const indexPath = path.join(viewerDistDir, "index.html");
   let html = await fs.readFile(indexPath, "utf8");
@@ -502,7 +504,49 @@ async function replaceAsync(source: string, pattern: RegExp, replacer: (...args:
   return result;
 }
 
-function staticPayloadScript(payload: { document: AgentMarkdownDocument; source: string }) {
+async function buildStaticPayload(document: AgentMarkdownDocument, source: string, root: string, config: AgentMarkdownConfig): Promise<StaticPayload> {
+  return {
+    document,
+    source,
+    artifacts: await collectStaticArtifacts(document, root, config),
+    sourcePathLabel: path.relative(root, document.sourcePath),
+    title: typeof document.frontmatter?.title === "string" ? document.frontmatter.title : undefined
+  };
+}
+
+async function collectStaticArtifacts(document: AgentMarkdownDocument, root: string, config: AgentMarkdownConfig) {
+  const artifacts: Record<string, StaticArtifact> = {};
+  for (const ref of collectArtifactRefs(document.nodes)) {
+    try {
+      const absolute = await resolveSafeRealPath(root, document.sourcePath, ref);
+      const ext = path.extname(absolute).toLowerCase();
+      if (!artifactExtensions.has(ext) && !dataExtensions.has(ext)) continue;
+      if (ext === ".html" && !config.security.allowHtmlEmbeds) continue;
+      const stat = await fs.stat(absolute);
+      if (stat.size > config.limits.maxEmbedSizeMb * 1024 * 1024) continue;
+      const mime = contentType(absolute);
+      if (isTextArtifact(ext)) {
+        artifacts[ref] = { kind: "text", mime, content: await fs.readFile(absolute, "utf8") };
+      } else {
+        const body = await fs.readFile(absolute);
+        artifacts[ref] = { kind: "data", mime, dataUrl: `data:${dataUrlMime(mime)};base64,${body.toString("base64")}` };
+      }
+    } catch {
+      // Validation has already reported inaccessible artifacts; keep conversion best-effort.
+    }
+  }
+  return artifacts;
+}
+
+function isTextArtifact(ext: string) {
+  return [".md", ".mmd", ".mermaid", ".txt", ".json", ".csv", ".tsv"].includes(ext);
+}
+
+function dataUrlMime(mime: string) {
+  return mime.split(";")[0]?.trim() || "application/octet-stream";
+}
+
+function staticPayloadScript(payload: StaticPayload) {
   return `<script>window.__AGENT_MD_STATIC__=${jsonForScript(payload)};</script>`;
 }
 
@@ -533,10 +577,10 @@ function renderFallback(document: AgentMarkdownDocument) {
   const diagnostics = document.diagnostics.length ? `Diagnostics\n${document.diagnostics.map((diagnostic) => `- ${diagnostic.severity}: ${diagnostic.message}${diagnostic.suggestion ? ` Suggestion: ${diagnostic.suggestion}` : ""}`).join("\n")}\n\n` : "";
   return diagnostics + document.nodes.map((node) => node.type === "markdown" ? node.value : `[${node.type}]`).join("\n\n");
 }
-function renderStaticHtml(document: AgentMarkdownDocument, source?: string) {
+function renderStaticHtml(document: AgentMarkdownDocument, source?: string, payload?: StaticPayload) {
   return `<!doctype html>
 <html><head><meta charset="utf8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Markdown</title>
-${staticPayloadScript({ document, source: source ?? "" })}
+${staticPayloadScript(payload ?? { document, source: source ?? "" })}
 <style>:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0f172a;background:#f8fafc}body{margin:0;padding:24px}.agent-md-card{border:1px solid #e2e8f0;border-radius:10px;background:white;padding:16px;margin:12px 0}.agent-md-error{border-color:#ef4444;background:#fef2f2}.diagnostics-panel{border:1px solid #cbd5e1;border-radius:12px;background:white;padding:16px;margin:18px 0}.diagnostic{border-left:4px solid #94a3b8;padding:10px 12px;margin:10px 0;background:#f8fafc}.diagnostic.error{border-color:#ef4444}.diagnostic.warning{border-color:#f59e0b}.diagnostic.info{border-color:#3b82f6}.meta{color:#475569;font-size:13px}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:8px;text-align:left}th{background:#f1f5f9}</style></head>
 <body><main><h1>Agent Markdown</h1>${renderStaticDiagnostics(document.diagnostics)}${document.nodes.map(renderStaticNode).join("\n")}</main></body></html>`;
 }

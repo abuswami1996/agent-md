@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Box A"},"geometry":{"type":"Polygon","coordinates":[[[-123,37],[-121,37],[-121,39],[-123,39],[-123,37]]]}},{"type":"Feature","properties":{"name":"Box B"},"geometry":{"type":"Polygon","coordinates":[[[-98,30],[-96,30],[-96,32],[-98,32],[-98,30]]]}}]}

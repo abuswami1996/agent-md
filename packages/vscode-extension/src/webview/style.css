@@ -21,11 +21,34 @@ body{margin:0;background:var(--background)}
 .agent-md-metric strong{display:block;margin-top:6px;font-size:22px}
 .agent-md-tabs>div:first-child{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--border)}
 .agent-md-tabs button{border:0;background:transparent;color:var(--muted-foreground);font-size:12px;padding:6px 8px;cursor:pointer}
-.agent-md-tabs button:hover{background:var(--muted);color:var(--foreground)}
+.agent-md-tabs button:hover,.agent-md-tabs button.active{background:var(--muted);color:var(--foreground)}
+.agent-md-tabs-pill>div:first-child{border-bottom:0}
+.agent-md-tabs-pill button{border-radius:999px}
+.agent-md-tabs-pill button.active{background:var(--primary);color:var(--background)}
+.agent-md-tabs-card>div:first-child{border-bottom:0}
+.agent-md-tabs-card button{border:1px solid var(--border);border-radius:6px;background:var(--card)}
+.agent-md-tabs-card button.active{background:var(--muted);border-color:var(--primary)}
+.agent-md-timeline-horizontal{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.agent-md-timeline-event{border-left:2px solid var(--border);padding-left:10px;margin:10px 0}
+.agent-md-timeline-horizontal .agent-md-timeline-event{border-left:0;border-top:2px solid var(--border);padding-left:0;padding-top:10px}
+.agent-md-timeline-group,.agent-md-timeline-description{color:var(--muted-foreground)}
+.agent-md-form-fields{display:grid;gap:10px;margin:10px 0}
+.agent-md-form-field{display:grid;gap:4px}
+.agent-md-form-field-checkbox{display:flex;align-items:center;gap:8px}
+.agent-md-form-field-checkbox input{width:auto}
+.agent-md-form input,.agent-md-form select{max-width:360px}
+.agent-md-form-submit{border:1px solid var(--border);border-radius:6px;background:var(--primary);color:var(--background);padding:6px 10px;font-size:12px;cursor:pointer}
+.agent-md-component-placeholder p{margin-bottom:0;color:var(--muted-foreground)}
+.agent-md-card svg text,.agent-md-card svg tspan{fill:var(--foreground)}
+.agent-md-card svg foreignObject,.agent-md-card svg .nodeLabel,.agent-md-card svg .nodeLabel p{color:var(--foreground)}
+.agent-md-simple-flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 8px;color:var(--foreground)}
+.agent-md-simple-flow-vertical{flex-direction:column;align-items:flex-start}
+.agent-md-simple-flow-node{min-width:120px;border:2px solid #8b5cf6;border-radius:8px;background:#eef2ff;color:#0f172a;font-weight:700;text-align:center;padding:18px 20px}
+.agent-md-simple-flow-arrow{color:#0f172a;font-weight:700}
 table{border-collapse:collapse;width:100%;font-size:12px}
 th,td{border:1px solid var(--border);padding:6px 8px;text-align:left}
 th{background:var(--muted);cursor:pointer;font-size:11px;color:var(--muted-foreground)}
-input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground);font-size:12px}
+input,select{padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground);font-size:12px}
 pre{background:var(--muted);color:var(--foreground);padding:12px;border-radius:8px;overflow:auto;font-size:12px}
 .agent-md-error,.error{border-color:var(--vscode-inputValidation-errorBorder,#dc2626)}
 .warning{border-color:var(--vscode-inputValidation-warningBorder,#d97706)}

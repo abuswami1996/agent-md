@@ -11,6 +11,7 @@ export default defineConfig({
       "@agent-md/schema": new URL("./packages/schema/src/index.ts", import.meta.url).pathname,
       "@agent-md/parser": new URL("./packages/parser/src/index.ts", import.meta.url).pathname,
       "@agent-md/resolver": new URL("./packages/resolver/src/index.ts", import.meta.url).pathname,
+      "@agent-md/renderer-react": new URL("./packages/renderer-react/src/index.tsx", import.meta.url).pathname,
       "@agent-md/skill": new URL("./packages/skill/src/index.ts", import.meta.url).pathname
     }
   }

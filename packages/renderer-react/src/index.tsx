@@ -4,25 +4,28 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter,
 import mermaid from "mermaid";
 import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, Diagnostic, DocumentNode, EmbedNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
 
-export function AgentMarkdownRenderer({ document }: { document: AgentMarkdownDocument }) {
-  return <div className="agent-md-document">{document.nodes.map((node, index) => <NodeRenderer key={index} node={node} document={document} />)}</div>;
+export type StaticArtifact = { kind: "text"; mime: string; content: string } | { kind: "data"; mime: string; dataUrl: string };
+type RendererContext = { staticArtifacts?: Record<string, StaticArtifact> };
+
+export function AgentMarkdownRenderer({ document, staticArtifacts }: { document: AgentMarkdownDocument; staticArtifacts?: Record<string, StaticArtifact> }) {
+  return <div className="agent-md-document">{document.nodes.map((node, index) => <NodeRenderer key={index} node={node} document={document} staticArtifacts={staticArtifacts} />)}</div>;
 }
 
-export function NodeRenderer({ node, document }: { node: DocumentNode; document: AgentMarkdownDocument }) {
+export function NodeRenderer({ node, document, staticArtifacts }: { node: DocumentNode; document: AgentMarkdownDocument } & RendererContext) {
   if (node.type === "markdown") return <ReactMarkdown>{node.value}</ReactMarkdown>;
   if (node.type === "error") return <ErrorCard message={node.message} raw={node.raw} diagnostic={diagnosticForNode(document, node)} />;
   if (node.type === "metric") return <Metric node={node} dataSources={document.dataSources} />;
   if (node.type === "chart") return <Chart node={node} dataSources={document.dataSources} />;
   if (node.type === "table") return <DataTable node={node} dataSources={document.dataSources} />;
-  if (node.type === "callout") return <Callout node={node} document={document} />;
-  if (node.type === "tabs") return <Tabs node={node} document={document} />;
+  if (node.type === "callout") return <Callout node={node} document={document} staticArtifacts={staticArtifacts} />;
+  if (node.type === "tabs") return <Tabs node={node} document={document} staticArtifacts={staticArtifacts} />;
   if (node.type === "query") return <QueryView node={node} dataSources={document.dataSources} />;
-  if (node.type === "timeline") return <div className="agent-md-card"><h3>Timeline</h3>{(node.events ?? []).map((event) => <p key={`${event.date}-${event.title}`}><strong>{event.date}</strong> {event.title}</p>)}</div>;
-  if (node.type === "diagram") return <Diagram node={node} document={document} />;
+  if (node.type === "timeline") return <TimelineView node={node} />;
+  if (node.type === "diagram") return <Diagram node={node} document={document} staticArtifacts={staticArtifacts} />;
   if (node.type === "map") return <MapView node={node} dataSources={document.dataSources} />;
-  if (node.type === "embed") return <Embed node={node} document={document} />;
+  if (node.type === "embed") return <Embed node={node} document={document} staticArtifacts={staticArtifacts} />;
   if (node.type === "form") return <FormView node={node} />;
-  if (node.type === "component") return <div className="agent-md-card">Registered component: {node.name}. Custom rendering disabled in current config.</div>;
+  if (node.type === "component") return <div className="agent-md-card agent-md-component-placeholder"><strong>Registered component: {node.name}</strong><p>Custom rendering is disabled by the current security config, so this safe placeholder is expected.</p></div>;
   return null;
 }
 
@@ -87,28 +90,43 @@ function RowsTable({ title, rows, columns, pageSize }: { title?: string; rows: R
   return <div className="agent-md-card"><h3>{title ?? "Table"}</h3><input placeholder="Search" value={query} onChange={(event) => setQuery(event.target.value)} /><table><thead><tr>{cols.map((column) => <th key={column} onClick={() => setSort(column)}>{column}</th>)}</tr></thead><tbody>{sorted.slice(0, pageSize).map((row, index) => <tr key={index}>{cols.map((column) => <td key={column}>{String(row[column] ?? "")}</td>)}</tr>)}</tbody></table>{sorted.length > pageSize ? <small>Showing {pageSize} of {sorted.length} rows</small> : null}</div>;
 }
 
-function Callout({ node, document }: { node: Extract<DocumentNode, { type: "callout" }>; document: AgentMarkdownDocument }) {
-  return <div className={`agent-md-card agent-md-callout agent-md-${node.calloutType}`}><strong>{node.title ?? node.calloutType}</strong>{node.body ? <ReactMarkdown>{node.body}</ReactMarkdown> : null}{node.children?.map((child, index) => <NodeRenderer key={index} node={child} document={document} />)}</div>;
+function Callout({ node, document, staticArtifacts }: { node: Extract<DocumentNode, { type: "callout" }>; document: AgentMarkdownDocument } & RendererContext) {
+  const children = node.body ? [] : node.children ?? [];
+  return <div className={`agent-md-card agent-md-callout agent-md-${node.calloutType}`}><strong>{node.title ?? node.calloutType}</strong>{node.body ? <ReactMarkdown>{node.body}</ReactMarkdown> : null}{children.map((child, index) => <NodeRenderer key={index} node={child} document={document} staticArtifacts={staticArtifacts} />)}</div>;
 }
 
-function Tabs({ node, document }: { node: Extract<DocumentNode, { type: "tabs" }>; document: AgentMarkdownDocument }) {
+function Tabs({ node, document, staticArtifacts }: { node: Extract<DocumentNode, { type: "tabs" }>; document: AgentMarkdownDocument } & RendererContext) {
   const initial = Math.max(0, node.tabs.findIndex((tab) => tab.label === node.default));
   const [active, setActive] = useState(initial);
   const tab = node.tabs[active];
-  return <div className="agent-md-card agent-md-tabs"><div>{node.tabs.map((item, index) => <button key={item.label} onClick={() => setActive(index)}>{item.label}</button>)}</div>{tab?.children.map((child, index) => <NodeRenderer key={index} node={child} document={document} />)}</div>;
+  const variant = node.variant ?? "line";
+  return <div className={`agent-md-card agent-md-tabs agent-md-tabs-${variant}`}><div>{node.tabs.map((item, index) => <button key={item.label} className={index === active ? "active" : undefined} aria-selected={index === active} onClick={() => setActive(index)}>{item.label}</button>)}</div>{tab?.children.map((child, index) => <NodeRenderer key={index} node={child} document={document} staticArtifacts={staticArtifacts} />)}</div>;
 }
 
-function Diagram({ node, document }: { node: DiagramNode; document: AgentMarkdownDocument }) {
+function TimelineView({ node }: { node: Extract<DocumentNode, { type: "timeline" }> }) {
+  const events = [...(node.events ?? [])].sort((left, right) => {
+    const result = Date.parse(left.date) - Date.parse(right.date);
+    return node.sort === "desc" ? -result : result;
+  });
+  return <div className={`agent-md-card agent-md-timeline agent-md-timeline-${node.layout ?? "vertical"}`}><h3>Timeline</h3>{events.map((event) => <article key={`${event.date}-${event.title}`} className="agent-md-timeline-event">{event.group ? <small className="agent-md-timeline-group">{event.group}</small> : null}<p><strong>{event.date}</strong> {event.title}</p>{event.description ? <p className="agent-md-timeline-description">{event.description}</p> : null}</article>)}</div>;
+}
+
+function Diagram({ node, document, staticArtifacts }: { node: DiagramNode; document: AgentMarkdownDocument } & RendererContext) {
   const [svg, setSvg] = useState<string>();
   const [error, setError] = useState<string>();
   useEffect(() => {
     let cancelled = false;
     async function render() {
       try {
-        const source = node.source ?? (node.src && hasHttpArtifactEndpoint() ? await fetchArtifactText(document.sourcePath, node.src, "diagram source") : "");
+        const source = node.source ?? staticTextArtifact(staticArtifacts, node.src) ?? (node.src && hasHttpArtifactEndpoint() ? await fetchArtifactText(document.sourcePath, node.src, "diagram source") : "");
         if (!source.trim()) throw new Error(`No diagram source available for ${node.title ?? node.diagramType}.`);
         const mermaidSource = toMermaidSource(node, source);
-        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "default" });
+        const simpleFlowchart = node.diagramType === "flowchart" ? renderSimpleFlowchartSvg(mermaidSource, node.direction ?? "TB") : undefined;
+        if (simpleFlowchart) {
+          if (!cancelled) setSvg(simpleFlowchart);
+          return;
+        }
+        mermaid.initialize({ startOnLoad: false, securityLevel: "loose", theme: "default" });
         const result = await mermaid.render(`agent-md-diagram-${hashString(mermaidSource)}`, mermaidSource);
         const sanitized = sanitizeSvg(result.svg);
         if (!sanitized) throw new Error("Unable to safely render diagram SVG.");
@@ -119,31 +137,43 @@ function Diagram({ node, document }: { node: DiagramNode; document: AgentMarkdow
     }
     render();
     return () => { cancelled = true; };
-  }, [document.sourcePath, node]);
+  }, [document.sourcePath, node, staticArtifacts]);
   if (error) return <ErrorCard message={error} raw={node.source ?? node.src} suggestion="Fix the diagram source or open the report in the local viewer if it references a local file." />;
   return <div className="agent-md-card"><h3>{node.title ?? "Diagram"}</h3>{svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : <p>Rendering diagram...</p>}</div>;
 }
 
-function Embed({ node, document }: { node: EmbedNode; document: AgentMarkdownDocument }) {
+function Embed({ node, document, staticArtifacts }: { node: EmbedNode; document: AgentMarkdownDocument } & RendererContext) {
   const mode = node.mode ?? "preview";
+  const artifact = staticArtifacts?.[node.src];
   const url = artifactUrl(document.sourcePath, node.src);
   const kind = artifactKind(node.src);
-  const canPreview = Boolean(url) && mode !== "link";
-  return <div className="agent-md-card agent-md-embed"><div className="agent-md-embed-header"><div><h3>{node.title ?? node.src}</h3><small>{node.src}</small></div>{url ? <a href={url} target="_blank" rel="noreferrer">{mode === "link" ? "Open artifact" : "Open"}</a> : null}</div>{node.caption ? <p className="agent-md-embed-caption">{node.caption}</p> : null}{canPreview ? <EmbedPreview node={node} url={url!} kind={kind} /> : <EmbedFallback mode={mode} hasUrl={Boolean(url)} kind={kind} />}</div>;
+  const artifactHref = artifact?.kind === "data" ? artifact.dataUrl : url;
+  const canPreview = Boolean(artifact || url) && mode !== "link";
+  return <div className="agent-md-card agent-md-embed"><div className="agent-md-embed-header"><div><h3>{node.title ?? node.src}</h3><small>{node.src}</small></div>{artifactHref ? <a href={artifactHref} target="_blank" rel="noreferrer">{mode === "link" ? "Open artifact" : "Open"}</a> : null}</div>{node.caption ? <p className="agent-md-embed-caption">{node.caption}</p> : null}{canPreview ? <EmbedPreview node={node} url={url} artifact={artifact} kind={kind} /> : <EmbedFallback mode={mode} hasUrl={Boolean(artifactHref)} kind={kind} />}</div>;
 }
 
-function EmbedPreview({ node, url, kind }: { node: EmbedNode; url: string; kind: ArtifactKind }) {
-  if (kind === "image") return <img className="agent-md-embed-image" src={url} alt={node.title ?? node.src} style={{ maxHeight: node.height, maxWidth: node.width }} />;
-  if (kind === "markdown" || kind === "text" || kind === "json" || kind === "csv") return <TextEmbed node={node} url={url} kind={kind} />;
-  if (kind === "video") return <video className="agent-md-embed-media" src={url} controls style={{ maxHeight: node.height, maxWidth: node.width }} />;
+function EmbedPreview({ node, url, artifact, kind }: { node: EmbedNode; url?: string; artifact?: StaticArtifact; kind: ArtifactKind }) {
+  if (kind === "image" && artifact?.kind === "data") return <img className="agent-md-embed-image" src={artifact.dataUrl} alt={node.title ?? node.src} style={{ maxHeight: node.height, maxWidth: node.width }} />;
+  if (kind === "image" && url) return <img className="agent-md-embed-image" src={url} alt={node.title ?? node.src} style={{ maxHeight: node.height, maxWidth: node.width }} />;
+  if (kind === "markdown" || kind === "text" || kind === "json" || kind === "csv") return <TextEmbed node={node} url={url} artifact={artifact} kind={kind} />;
+  if (kind === "video" && artifact?.kind === "data") return <video className="agent-md-embed-media" src={artifact.dataUrl} controls style={{ maxHeight: node.height, maxWidth: node.width }} />;
+  if (kind === "video" && url) return <video className="agent-md-embed-media" src={url} controls style={{ maxHeight: node.height, maxWidth: node.width }} />;
   return <EmbedFallback mode={node.mode ?? "preview"} hasUrl={true} kind={kind} />;
 }
 
-function TextEmbed({ node, url, kind }: { node: EmbedNode; url: string; kind: Extract<ArtifactKind, "markdown" | "text" | "json" | "csv"> }) {
+function TextEmbed({ node, url, artifact, kind }: { node: EmbedNode; url?: string; artifact?: StaticArtifact; kind: Extract<ArtifactKind, "markdown" | "text" | "json" | "csv"> }) {
   const [text, setText] = useState<string>();
   const [error, setError] = useState<string>();
   useEffect(() => {
     let cancelled = false;
+    if (artifact?.kind === "text") {
+      setText(kind === "json" ? formatJson(artifact.content) : artifact.content);
+      return () => { cancelled = true; };
+    }
+    if (!url) {
+      setError("No artifact URL is available.");
+      return () => { cancelled = true; };
+    }
     fetch(url).then(async (response) => {
       if (!response.ok) throw new Error(`Unable to load artifact: ${response.status}`);
       return response.text();
@@ -153,7 +183,7 @@ function TextEmbed({ node, url, kind }: { node: EmbedNode; url: string; kind: Ex
       if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load artifact");
     });
     return () => { cancelled = true; };
-  }, [kind, url]);
+  }, [artifact, kind, url]);
   if (error) return <ErrorCard message={error} raw={node.src} suggestion="Open this report from the local viewer and confirm the artifact exists inside the project." />;
   if (text == null) return <p className="agent-md-embed-loading">Loading artifact...</p>;
   if (kind === "markdown" && (node.mode ?? "preview") === "preview") return <div className="agent-md-embed-markdown"><ReactMarkdown>{text}</ReactMarkdown></div>;
@@ -193,7 +223,14 @@ function Grid() {
 }
 
 function FormView({ node }: { node: Extract<DocumentNode, { type: "form" }> }) {
-  return <form className="agent-md-card"><h3>{node.title ?? "Form"}</h3>{node.description ? <p>{node.description}</p> : null}{node.fields.map((field) => <label key={field.name}><span>{field.label ?? field.name}</span><input name={field.name} type={field.fieldType === "checkbox" ? "checkbox" : field.fieldType === "date" ? "date" : field.fieldType === "number" ? "number" : "text"} defaultValue={String(field.default ?? "")} /></label>)}</form>;
+  return <form className="agent-md-card agent-md-form" onSubmit={(event) => event.preventDefault()}><h3>{node.title ?? "Form"}</h3>{node.description ? <p>{node.description}</p> : null}<div className="agent-md-form-fields">{node.fields.map((field) => <label key={field.name} className={`agent-md-form-field agent-md-form-field-${field.fieldType}`}><span>{field.label ?? field.name}</span>{renderFormField(field)}</label>)}</div>{node.submitLabel ? <button type="submit" className="agent-md-form-submit">{node.submitLabel}</button> : null}</form>;
+}
+
+function renderFormField(field: Extract<DocumentNode, { type: "form" }>["fields"][number]) {
+  if (field.fieldType === "select") return <select name={field.name} defaultValue={String(field.default ?? "")}>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
+  if (field.fieldType === "checkbox") return <input name={field.name} type="checkbox" defaultChecked={Boolean(field.default)} />;
+  const type = field.fieldType === "date" ? "date" : field.fieldType === "number" ? "number" : "text";
+  return <input name={field.name} type={type} defaultValue={String(field.default ?? "")} placeholder={field.placeholder} required={field.required} min={field.min} max={field.max} step={field.step} />;
 }
 
 function fallbackFor(node: ChartNode) { return `[Chart: ${node.chartType} chart of ${node.y ?? node.value ?? "value"} by ${node.x ?? node.label ?? "label"}]`; }
@@ -215,6 +252,12 @@ async function fetchArtifactText(sourcePath: string, src: string, label = "artif
 }
 
 type ArtifactKind = "markdown" | "text" | "json" | "csv" | "image" | "video" | "pdf" | "html" | "unknown";
+
+function staticTextArtifact(artifacts: Record<string, StaticArtifact> | undefined, src: string | undefined) {
+  if (!src) return undefined;
+  const artifact = artifacts?.[src];
+  return artifact?.kind === "text" ? artifact.content : undefined;
+}
 
 function artifactKind(src: string): ArtifactKind {
   const ext = src.split(/[?#]/)[0]?.toLowerCase().split(".").pop() ?? "";
@@ -247,6 +290,40 @@ function hashString(value: string) {
   let hash = 0;
   for (let index = 0; index < value.length; index++) hash = Math.imul(31, hash) + value.charCodeAt(index) | 0;
   return Math.abs(hash).toString(36);
+}
+
+function renderSimpleFlowchartSvg(source: string, direction: DiagramNode["direction"]) {
+  const lines = source.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("flowchart") && !line.startsWith("graph"));
+  const nodes = new Map<string, string>();
+  const edges: Array<[string, string]> = [];
+  const nodePattern = /([A-Za-z0-9_]+)(?:\["([^"]+)"\]|\[([^\]]+)\])?/g;
+  for (const line of lines) {
+    if (!line.includes("-->")) return undefined;
+    const [left, right] = line.split(/-->/).map((part) => part.trim());
+    const parsedLeft = parseFlowNode(left, nodePattern);
+    const parsedRight = parseFlowNode(right, nodePattern);
+    if (!parsedLeft || !parsedRight) return undefined;
+    if (!nodes.has(parsedLeft.id) || parsedLeft.label !== parsedLeft.id) nodes.set(parsedLeft.id, parsedLeft.label);
+    if (!nodes.has(parsedRight.id) || parsedRight.label !== parsedRight.id) nodes.set(parsedRight.id, parsedRight.label);
+    edges.push([parsedLeft.id, parsedRight.id]);
+  }
+  if (nodes.size === 0 || edges.length === 0) return undefined;
+  const horizontal = direction === "LR" || direction === "RL";
+  const ids = [...nodes.keys()];
+  const ordered = ids.map((id) => `<div class="agent-md-simple-flow-node">${escapeHtmlText(nodes.get(id) ?? id)}</div>`);
+  const arrow = `<div class="agent-md-simple-flow-arrow" aria-hidden="true">${horizontal ? "->" : "↓"}</div>`;
+  return `<div class="agent-md-simple-flow agent-md-simple-flow-${horizontal ? "horizontal" : "vertical"}" role="img" aria-label="Flowchart">${ordered.map((item, index) => `${index > 0 ? arrow : ""}${item}`).join("")}</div>`;
+}
+
+function parseFlowNode(source: string, pattern: RegExp) {
+  pattern.lastIndex = 0;
+  const match = pattern.exec(source);
+  if (!match) return undefined;
+  return { id: match[1], label: match[2] ?? match[3] ?? match[1] };
+}
+
+function escapeHtmlText(value: string) {
+  return value.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]!));
 }
 
 type GeoJson = { type: "FeatureCollection"; features: GeoFeature[] };
@@ -288,7 +365,7 @@ function sanitizeSvg(svg: string) {
   if (typeof DOMParser === "undefined" || typeof XMLSerializer === "undefined") return "";
   const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (parsed.querySelector("parsererror")) return "";
-  const blockedElements = new Set(["script", "foreignobject", "iframe", "object", "embed"]);
+  const blockedElements = new Set(["script", "iframe", "object", "embed"]);
   const elements = Array.from(parsed.querySelectorAll("*"));
   for (const element of elements) {
     if (blockedElements.has(element.tagName.toLowerCase())) {
@@ -321,6 +398,11 @@ function runBrowserQuery(rows: Record<string, unknown>[], node: QueryNode) {
     return true;
   }));
   if (node.select?.length) next = next.map((row) => Object.fromEntries(node.select!.map((key) => [key, row[key]])));
-  if (node.sort) next = [...next].sort((a, b) => String(a[node.sort!.by]).localeCompare(String(b[node.sort!.by])));
+  if (node.sort) next = [...next].sort((a, b) => compareValues(a[node.sort!.by], b[node.sort!.by], node.sort!.direction ?? "asc"));
   return node.limit ? next.slice(0, node.limit) : next;
+}
+
+function compareValues(a: unknown, b: unknown, direction: "asc" | "desc") {
+  const result = a === b ? 0 : a == null ? -1 : b == null ? 1 : a > b ? 1 : -1;
+  return direction === "asc" ? result : -result;
 }

@@ -61,6 +61,55 @@ describe("agent-md convert", () => {
       await fs.rm(temp, { recursive: true, force: true });
     }
   });
+
+  it("bundles local embed and diagram artifacts into converted HTML", async () => {
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "agent-md-convert-"));
+    try {
+      await fs.mkdir(path.join(temp, "artifacts"), { recursive: true });
+      await fs.mkdir(path.join(temp, "diagrams"), { recursive: true });
+      await fs.writeFile(path.join(temp, "artifacts", "summary.md"), "# Embedded Summary\n\nLocal artifact body.\n");
+      await fs.writeFile(path.join(temp, "artifacts", "stats.json"), "{\"status\":\"ok\"}\n");
+      await fs.writeFile(path.join(temp, "diagrams", "flow.mmd"), "flowchart LR\n  A[Start] --> B[Done]\n");
+      await fs.writeFile(path.join(temp, "artifact.agent.md"), `---
+format: agent-md
+version: 0.1
+title: Artifact Report
+---
+
+::embed
+title: Summary
+src: artifacts/summary.md
+mode: preview
+:::
+
+::embed
+title: Stats
+src: artifacts/stats.json
+mode: preview
+:::
+
+::diagram
+type: flowchart
+title: External flow
+src: diagrams/flow.mmd
+:::
+`);
+
+      const result = await execFileAsync(tsx, [cli, "convert", "--file_name", "artifact.agent.md", "--html"], { cwd: temp });
+      const html = await fs.readFile(path.join(temp, "artifact.html"), "utf8");
+
+      expect(result.stdout).toContain("Wrote artifact.html");
+      expect(html).toContain("\"artifacts\"");
+      expect(html).toContain("artifacts/summary.md");
+      expect(html).toContain("Embedded Summary");
+      expect(html).toContain("artifacts/stats.json");
+      expect(html).toContain("\\\"status\\\":\\\"ok\\\"");
+      expect(html).toContain("diagrams/flow.mmd");
+      expect(html).toContain("A[Start]");
+    } finally {
+      await fs.rm(temp, { recursive: true, force: true });
+    }
+  });
 });
 
 async function execConvertWithDiagnostics(args: string[], cwd: string) {

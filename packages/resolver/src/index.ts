@@ -5,7 +5,7 @@ import Papa from "papaparse";
 import { collectNodeDataRefs, defaultConfig, getReferencedColumns, type AgentMarkdownConfig, type AgentMarkdownDocument, type DataColumn, type DataSource, type Diagnostic, type DocumentNode, type QueryNode } from "@agent-md/schema";
 
 export const dataExtensions = new Set([".csv", ".tsv", ".json", ".yaml", ".yml", ".geojson"]);
-export const artifactExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webm", ".mp4", ".html", ".txt", ".md", ".mmd", ".mermaid", ".csv", ".json"]);
+export const artifactExtensions = new Set([".pdf", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webm", ".mp4", ".html", ".txt", ".md", ".mmd", ".mermaid", ".csv", ".tsv", ".json"]);
 
 export function isRemoteRef(ref: string): boolean {
   return /^https?:\/\//i.test(ref);

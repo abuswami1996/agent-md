@@ -1,9 +1,9 @@
 :root{--background:#f8fafc;--card:#fff;--muted:#f1f5f9;--muted-foreground:#64748b;--foreground:#0f172a;--border:#e2e8f0;--primary:#2563eb;--danger:#dc2626;--warning:#d97706;--agent-md-chart-1:#2563eb;--agent-md-chart-2:#16a34a;--agent-md-chart-3:#f59e0b;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:var(--foreground);background:var(--background)}
 body{margin:0}
 .app-frame{min-height:100vh;padding:16px;background:var(--background)}
-.browser-shell{display:flex;min-height:min(75vh,680px);overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--card)}
+.browser-shell{display:flex;flex-direction:column;min-height:min(75vh,680px);overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--card)}
 .browser-shell.static-shell{min-height:auto}
-.file-sidebar{width:100%;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);background:var(--card)}
+.file-sidebar{position:relative;z-index:2;width:100%;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);background:var(--card)}
 .sidebar-strip{padding:9px 12px;background:color-mix(in srgb,var(--muted) 40%,transparent);border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);font-size:12px;font-weight:500;color:var(--muted-foreground)}
 .file-tree{max-height:min(40vh,320px);overflow:auto;overscroll-behavior:contain}
 .folder-group{border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
@@ -23,8 +23,8 @@ ul{list-style:none;margin:0;padding:4px 0}
 .ok-dot{background:#16a34a}
 .warning-dot{background:var(--warning)}
 .error-dot{background:var(--danger)}
-.preview-pane{min-width:0;flex:1;display:flex;flex-direction:column;overflow:auto}
-.preview-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);background:var(--card)}
+.preview-pane{position:relative;z-index:1;min-width:0;flex:1;display:flex;flex-direction:column;overflow:auto}
+.preview-header{position:sticky;top:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);background:var(--card)}
 .preview-header h3{margin:0;font-size:13px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .preview-header p{margin:3px 0 0;color:var(--muted-foreground);font-size:11px}
 .mode-button{border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--muted-foreground);padding:5px 8px;font-size:11px;cursor:pointer}
@@ -51,11 +51,35 @@ ul{list-style:none;margin:0;padding:4px 0}
 .warning{border-color:color-mix(in srgb,var(--warning) 35%,var(--border));background:color-mix(in srgb,var(--warning) 6%,var(--card))}
 .agent-md-tabs>div:first-child{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--border)}
 .agent-md-tabs button{border:0;background:transparent;color:var(--muted-foreground);font-size:12px;padding:6px 8px;cursor:pointer}
-.agent-md-tabs button:hover{background:var(--muted);color:var(--foreground)}
+.agent-md-tabs button:hover,.agent-md-tabs button.active{background:var(--muted);color:var(--foreground)}
+.agent-md-tabs-pill>div:first-child{border-bottom:0}
+.agent-md-tabs-pill button{border-radius:999px}
+.agent-md-tabs-pill button.active{background:var(--primary);color:white}
+.agent-md-tabs-card>div:first-child{border-bottom:0}
+.agent-md-tabs-card button{border:1px solid var(--border);border-radius:6px;background:var(--card)}
+.agent-md-tabs-card button.active{background:var(--muted);border-color:var(--primary)}
+.agent-md-timeline-horizontal{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.agent-md-timeline-event{border-left:2px solid var(--border);padding-left:10px;margin:10px 0}
+.agent-md-timeline-horizontal .agent-md-timeline-event{border-left:0;border-top:2px solid var(--border);padding-left:0;padding-top:10px}
+.agent-md-timeline-group,.agent-md-timeline-description{color:var(--muted-foreground)}
+.agent-md-form-fields{display:grid;gap:10px;margin:10px 0}
+.agent-md-form-field{display:grid;gap:4px}
+.agent-md-form-field-checkbox{display:flex;align-items:center;gap:8px}
+.agent-md-form-field-checkbox input{width:auto}
+.agent-md-form input,.agent-md-form select{max-width:360px}
+.agent-md-form-submit{border:1px solid var(--border);border-radius:6px;background:var(--primary);color:white;padding:6px 10px;font-size:12px;cursor:pointer}
+.agent-md-component-placeholder p{margin-bottom:0;color:var(--muted-foreground)}
+.diagnostics-panel .info{border-color:color-mix(in srgb,var(--primary) 25%,var(--border));background:color-mix(in srgb,var(--primary) 5%,var(--card))}
+.agent-md-card svg text,.agent-md-card svg tspan{fill:var(--foreground)}
+.agent-md-card svg foreignObject,.agent-md-card svg .nodeLabel,.agent-md-card svg .nodeLabel p{color:var(--foreground)}
+.agent-md-simple-flow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 8px;color:var(--foreground)}
+.agent-md-simple-flow-vertical{flex-direction:column;align-items:flex-start}
+.agent-md-simple-flow-node{min-width:120px;border:2px solid #8b5cf6;border-radius:8px;background:#eef2ff;color:#0f172a;font-weight:700;text-align:center;padding:18px 20px}
+.agent-md-simple-flow-arrow{color:#0f172a;font-weight:700}
 table{border-collapse:collapse;width:100%;font-size:12px}
 th,td{border:1px solid color-mix(in srgb,var(--border) 70%,transparent);padding:6px 8px;text-align:left}
 th{background:color-mix(in srgb,var(--muted) 45%,transparent);cursor:pointer;font-size:11px;color:var(--muted-foreground)}
-input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px}
+input,select{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px}
 pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px}
-@media (min-width:1024px){.browser-shell{flex-direction:row}.file-sidebar{width:min(100%,280px);border-bottom:0;border-right:1px solid color-mix(in srgb,var(--border) 60%,transparent)}.file-tree{max-height:min(75vh,720px)}.preview-body{padding:18px 22px}}
+@media (min-width:760px){.browser-shell{flex-direction:row}.file-sidebar{width:min(100%,280px);border-bottom:0;border-right:1px solid color-mix(in srgb,var(--border) 60%,transparent)}.file-tree{max-height:min(75vh,720px)}.preview-body{padding:18px 22px}}
 @media (min-width:1280px){.file-sidebar{width:320px}}
