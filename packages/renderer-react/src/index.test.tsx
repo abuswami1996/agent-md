@@ -1,8 +1,31 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AgentMarkdownRenderer, type StaticArtifact } from "./index";
 import type { AgentMarkdownDocument } from "@agent-md/schema";
+
+vi.mock("recharts", async () => {
+  const React = await import("react");
+  const Component = (name: string) => ({ children, dataKey, nameKey }: { children?: React.ReactNode; dataKey?: string; nameKey?: string }) => React.createElement("div", { "data-recharts": name, "data-key": dataKey, "data-name-key": nameKey }, children);
+  return {
+    ResponsiveContainer: Component("ResponsiveContainer"),
+    LineChart: Component("LineChart"),
+    Line: Component("Line"),
+    BarChart: Component("BarChart"),
+    Bar: Component("Bar"),
+    AreaChart: Component("AreaChart"),
+    Area: Component("Area"),
+    ScatterChart: Component("ScatterChart"),
+    Scatter: Component("Scatter"),
+    PieChart: Component("PieChart"),
+    Pie: Component("Pie"),
+    Cell: Component("Cell"),
+    XAxis: Component("XAxis"),
+    YAxis: Component("YAxis"),
+    Tooltip: Component("Tooltip"),
+    Legend: Component("Legend")
+  };
+});
 
 function render(nodes: AgentMarkdownDocument["nodes"], dataSources: AgentMarkdownDocument["dataSources"] = {}, staticArtifacts?: Record<string, StaticArtifact>) {
   const document: AgentMarkdownDocument = { format: "agent-md", version: "0.1", sourcePath: "/tmp/test.agent.md", nodes, dataSources, diagnostics: [] };
@@ -21,6 +44,15 @@ describe("AgentMarkdownRenderer primitives", () => {
     });
     expect(html.indexOf("Mar")).toBeLessThan(html.indexOf("Feb"));
     expect(html.indexOf("Feb")).toBeLessThan(html.indexOf("Jan"));
+  });
+
+  it("uses x and y as pie chart name and value keys", () => {
+    const html = render([{ type: "chart", chartType: "pie", title: "Platform mix", data: "platforms", x: "platform_usage", y: "count" }], {
+      platforms: { id: "platforms", origin: "inline", format: "csv", rows: [{ platform_usage: "TikTok", count: 10 }, { platform_usage: "Instagram", count: 8 }], diagnostics: [] }
+    });
+
+    expect(html).toContain("data-key=\"count\"");
+    expect(html).toContain("data-name-key=\"platform_usage\"");
   });
 
   it("renders form controls according to schema", () => {

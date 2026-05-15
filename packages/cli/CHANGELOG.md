@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed bundled viewer rendering for pie charts that use standard `x` and `y` fields instead of pie-specific `label` and `value` fields.
+- Added colored pie slices for clearer platform/category breakdowns.
+
 ## 0.2.0
 
 - Fixed rendered primitive behavior in the bundled browser viewer, including forms, tabs, timelines, query sorting, and flowchart labels.

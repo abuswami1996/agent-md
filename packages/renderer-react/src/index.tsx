@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, ScatterChart, Scatter, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import mermaid from "mermaid";
 import type { AgentMarkdownDocument, ChartNode, DataSource, DiagramNode, Diagnostic, DocumentNode, EmbedNode, MapNode, MetricNode, QueryNode, TableNode } from "@agent-md/schema";
 
@@ -62,12 +62,20 @@ function renderChart(node: ChartNode, common: { data: Record<string, unknown>[] 
   if (node.chartType === "bar") return <BarChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key, index) => <Bar key={key} dataKey={key} fill={chartColor(index)} />)}</BarChart>;
   if (node.chartType === "area") return <AreaChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{yKeys.map((key, index) => <Area key={key} dataKey={key} fill={chartColor(index)} stroke={chartColor(index)} />)}</AreaChart>;
   if (node.chartType === "scatter") return <ScatterChart><XAxis dataKey={node.x} /><YAxis dataKey={typeof node.y === "string" ? node.y : undefined} /><Tooltip /><Scatter data={common.data} fill={chartColor(0)} /></ScatterChart>;
-  if (node.chartType === "pie") return <PieChart><Tooltip /><Pie data={common.data} dataKey={node.value} nameKey={node.label} fill={chartColor(0)} /></PieChart>;
+  if (node.chartType === "pie") return <PieChart><Tooltip />{node.legend !== false ? <Legend /> : null}<Pie data={common.data} dataKey={pieValueKey(node)} nameKey={pieNameKey(node)}>{common.data.map((_row, index) => <Cell key={`slice-${index}`} fill={chartColor(index)} />)}</Pie></PieChart>;
   return <LineChart {...common}><XAxis dataKey={node.x} /><YAxis /><Tooltip />{node.legend !== false ? <Legend /> : null}{yKeys.map((key, index) => <Line key={key} dataKey={key} stroke={chartColor(index)} />)}</LineChart>;
 }
 
 function chartColor(index: number) {
   return `var(--agent-md-chart-${index + 1}, var(--agent-md-chart-1, #2563eb))`;
+}
+
+function pieValueKey(node: ChartNode) {
+  return node.value ?? (typeof node.y === "string" ? node.y : node.y?.[0]);
+}
+
+function pieNameKey(node: ChartNode) {
+  return node.label ?? node.x;
 }
 
 function DataTable({ node, dataSources }: { node: TableNode; dataSources: Record<string, DataSource> }) {
@@ -162,7 +170,8 @@ function EmbedPreview({ node, url, artifact, kind }: { node: EmbedNode; url?: st
 }
 
 function TextEmbed({ node, url, artifact, kind }: { node: EmbedNode; url?: string; artifact?: StaticArtifact; kind: Extract<ArtifactKind, "markdown" | "text" | "json" | "csv"> }) {
-  const [text, setText] = useState<string>();
+  const initialText = artifact?.kind === "text" ? kind === "json" ? formatJson(artifact.content) : artifact.content : undefined;
+  const [text, setText] = useState<string | undefined>(initialText);
   const [error, setError] = useState<string>();
   useEffect(() => {
     let cancelled = false;

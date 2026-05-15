@@ -2,7 +2,7 @@
   "name": "agent-md-preview",
   "displayName": "Agent Markdown Preview",
   "description": "Preview local-first Agent Markdown documents in VSCode and Cursor.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "AbhinavSwaminathan",
   "license": "MIT",
   "author": "Abhinav Swaminathan",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Bumped the extension package for the 0.2.1 pie chart rendering bug fix in the shared renderer.
+
 ## 0.2.0
 
 - Updated preview styles for tab variants, timelines, forms, diagnostics, and diagram labels.

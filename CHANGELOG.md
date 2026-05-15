@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed pie charts so `x`/`y` chart fields are used as the slice label and value keys when `label`/`value` are not provided.
+- Improved pie chart readability by assigning each slice a palette color.
+
 ## 0.2.0
 
 - Fixed Agent Markdown primitive rendering for callouts, forms, query sorting, timelines, tabs, components, and flowchart labels.
