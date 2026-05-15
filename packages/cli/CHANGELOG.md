@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Fixed rendered primitive behavior in the bundled browser viewer, including forms, tabs, timelines, query sorting, and flowchart labels.
+- Added safe static artifact bundling for converted HTML so local embeds and diagram source files render without the live `/artifact` endpoint.
+- Improved live viewer UX for loading, root-level file grouping, stale document selection, diagnostics, and source/sidebar click stability.
+- Expanded the generated Agent Markdown skill with agent-friendly validation, preview, conversion, and repair guidance.
+
 ## 0.1.6
 
 - Added `agent-md convert --file_name <file.agent.md> --html` for writing static HTML files.

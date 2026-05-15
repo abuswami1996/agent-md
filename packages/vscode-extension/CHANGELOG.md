@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Updated preview styles for tab variants, timelines, forms, diagnostics, and diagram labels.
+- Bumped the extension package alongside the CLI 0.2.0 primitive rendering and static artifact release.
+
 ## 0.1.6
 
 - Bumped the extension package for the 0.1.6 release alongside the CLI static HTML conversion update.

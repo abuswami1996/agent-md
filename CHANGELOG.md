@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Fixed Agent Markdown primitive rendering for callouts, forms, query sorting, timelines, tabs, components, and flowchart labels.
+- Added self-contained static HTML artifact bundling for safe local embeds and external diagram sources.
+- Improved the browser viewer's loading states, root file grouping, share-ready headers, diagnostics summaries, and click stability.
+- Expanded installed agent skill guidance for validation repair loops, CLI options, local artifact safety, and common authoring pitfalls.
+
 ## 0.1.6
 
 - Added `agent-md convert --file_name <file.agent.md> --html` for static HTML document generation.
