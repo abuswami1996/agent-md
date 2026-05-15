@@ -328,8 +328,12 @@ Reload Cursor or VSCode and verify:
 - `Agent Markdown: Open Preview` appears in the command palette.
 - `Cmd+Shift+V` opens the Agent Markdown preview on macOS for `.agent.md` files.
 - `Ctrl+Shift+V` opens it on Windows/Linux for `.agent.md` files.
+- Right-clicking an `.agent.md` editor shows `Agent Markdown: Open Preview`.
 - The preview opens in the active editor group.
+- After switching back to the source editor, pressing the preview shortcut again reveals the existing Agent Markdown preview.
+- After switching to another `.agent.md` file, pressing the preview shortcut retargets and reveals the existing Agent Markdown preview.
 - Charts, maps, diagrams, tabs, tables, callouts, metrics, embeds, and diagnostics render.
+- VSCode's built-in `Markdown: Open Preview` remains a plain Markdown preview and is not expected to render Agent Markdown primitives.
 
 Use the comprehensive example:
 
